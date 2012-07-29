@@ -1,0 +1,163 @@
+
+-------------
+Kernel TODO
+
+See what the deal is with tsk->signal->oom_score_adj == OOM_SCORE_ADJ_MIN for
+mmput/copy_mm.
+
+The first time a child is run, call wake_up_task. Otherwise, use the wait queue
+mechanism. We need to be able to determine if a task has run at least once, so
+perhaps we add back in task_struct.d_runonce?
+
+Make mmap only support MAP_FIXED | MAP_PRIVATE for deterministic process.
+
+[IN PROGRESS] What should happen when dput/dget is called on a dead process? Obviously no action is taken...
+but is this considered an error? Do we fault?
+  - when a child is killed, we need to get its return code so it can go from
+  ZOMBIE to completely freed.
+  - How do we recycle processes? Once a process is dead, another may be created with the recycled
+  deterministic pid...so...
+
+[DONE] Add option to kill child. Perhaps we can use an already existing linux syscall.
+  - Now how to get exit code and recycle zombie child process?
+
+[DONE]-- Faulting, exiting.
+  When a deterministic process unexpectedly (or even expectedly) exits, we need to make sure
+  than the waiting parent knows about this so that the parent won't wait forever. This requires
+  knowing every possible location/mechanism a process can exit and interposing our notify code.
+  There might be a simple mechanism already in place, but I have not actually looked into this.
+
+mm/memory.c copy_one_pte necessary to check for old page?
+
+Check memory ranges (ex: can't map above 0xc0000000). Low priority at the moment...
+
+test file mappings merge
+
+Whats the deal with page_cache_release???
+
+Find out what happens (and anything to fix it) when I give trash pointers to the syscalls.
+    Ex: dput(23904, 2646, 345923, 234924, 2423492)
+
+If do_dfork is called and we are SNAP-ing then there is no need to do the full operation of SNAP (mmput, dup, dup).
+[DONE] !!!For all get_task_mm, call mmput!!!
+    - Done, now go through once more to ensure all have been fixed.
+
+PTE locking
+  - Find out how to actually lock in a correct, non deadlocking order in merge_pte_range.
+  - Unfortunately, the way I decided to iterate over the memory might leave some ambiguity on
+    the order in which spin locks for the page table entries are acquired, since sometimes
+    certain locks will not even be acquired (for instance, if destination is not even mapped,
+    then no lock is acquired).
+
+Specify userland pointers with __user.
+    - Not sure why...but need to investigate the validity of any pointers from userspace.
+
+-------------------------
+For now, disable any support for HUGETLB for deterministic processes since it
+hinders certain optimizations for copy and merge.
+[IN PROGRESS] Add HUGETLB support for COPY and MERGE.
+  - [IN PROGRESS] copy_huge_pmd for dst different from src address
+  - Test copy_hugetlb_page_range_dst
+  - Any remapping of old regions must include VM_HUGEPAGE vm_flag.
+  - Merge is particularly tricky due to src and dst possibly having huge and non
+    huge page pages that must be merged together.
+  - Copy is easier since we can obliterate the destination's mappings, then copy
+    from the source regardless of the source pages types. Special care must be
+    taken though when we copy with an offset.
+-------------------------
+
+[DONE] Make DETERMINE_VM_COPY copy on write.
+ - Optimize manuallyCopy if dst/src == current.
+  [DONE]  - Across multiple vm_area_structs?
+  [DONE]  - Worry about keeping spin locks for too long.
+ - Manually copy memory that is not page aligned.
+ - File mappings (currently working only on anonymous memory).
+ - consider making functions take mm_struct instead of vm_area_struct (why not?)
+
+Low Priority:
+ - Need architecture specific ways to set return value from interrupt to be 0 (in x86, this is accomplished by setting %eax=0).
+ - KSM (kernel samepage merging) is not supported, so it is turned off in the
+     kernel config. We should think about why KSM causes panics, and add this support
+     back in. See ksm_fork() in fork() and ksm_exit() in mmput().
+
+[DONE] Mask away all signals since deterministic processes shouldnt receive them.
+Certain signals are allowed, but only at the request of the kernel from dput,
+        _exit(), etc. Never from a syscall such as kill().
+
+Remove run_once.
+Figure out how to really mmput(snapshot_mm).
+Code from kernel/fork.c is important for initializing values of task_struct
+(is_deterministic=0, etc).
+
+CITE sources
+
+Figure out why/when linux makes a vma->anon_vma. This causes issues with copy_page_range not doing
+any work when I really want it to.
+
+[DONE]See if I can use kmap_atomic for mapping pages, as this could speed up merge.
+
+page_cache_release ????
+WHOOPS: invalidate cache/tlb anytime I change page tables.
+Also, figure out when to delete/decrement dst page count on copy_one_pte.
+remap_region if fails, return
+Check return values (ret != do_brk_gen()).
+
+-------------
+File TODO
+Truncate file blocks.
+Add static assertions for FS_NINODES, other constants.
+Add assertions that blockno, inode number (etc) are in valid range before evaluating them.
+
+----------------------------------------------------------------------------------------------------------------------------
+
+Allow process to control own address space:
+  - Do we need a new system call, or can we use mmap and change it to "know" when to be deterministic?
+  - Essentially have similar powers as mmap, except the address must be fixed, private, etc.
+  - Probably disallow file mappings for now since these represent obvious sources of nondeterminism.
+
+[DONE] Implement an anonymous memory mapper for arbitrary process's memory structures.
+  - (AVERTED) Needs to unmap any old regions.
+  - (AVERTED) Figure out what VM accounting is.
+  - [DONE] Final solution was to make do_brk a little bit more general.
+
+[DONE] Add some validation on the address ranges for dput/dget (start<end, etc).
+
+[DONE] Make zero fill more efficient
+  - [DONE] Probably a O(constant) time operation possible.
+  - [DONE] Worry about spanning multiple vm_area_structs
+
+pin_one_page needs to unmap page or soemthing...
+mm/memory.c copy_page_range make duplicate that takes different dst address.
+
+Do we need to hold mmap_sem the entire time in zero_fill_vm and copy_memory (when we ensure all regions are mapped)?
+
+Go through code to ensure that no functions return without releasing memory/locks.
+
+[DONE] Implement syscall (or other method) for a process to "become" deterministic.
+  - We have a single root/master process. All children are deterministic (they
+    dont have access to restricted resources like file IO). This root process
+    still has fill access to all linux syscalls, so it must enfore determinisim
+    on itself.
+
+Snapshot/merge.
+  - [DONE] Parent snapshots memory image into child.
+  - [DONE] Any changed bytes on a merge(dget) will be detected by the kernel and the
+        kernel will generate an exception.
+    - Parent merges a subset of the virtual address space.
+  - [DONE] Snapshot implementation:
+    - [DONE] Destroys the old mm_struct and copies (dup_mm) the parents mm into the child's mm.
+    - [DONE] Replica of mm_struct is stored in the child's task_struct. This will enable the task to 
+        - [DONE] This should take care of things like incrementing page count correctly.
+  - Merge implementation
+    - Need to figure out important optimizations on when we can skip scanning a page upper/middle/etf directory.
+        We want to be as efficient as possible in determining what memory needs to be merged.
+    - Looks like in general, only x86 provides page directory dirty bits (I don't even know if all architectures
+        implement at a bare minimum PTE dirty bits). In any case, I can create a function that asks at each page
+        table level whether or not the entry stores dirty bits. If not, then I must traverse deeper in the page
+        table.
+    - [DONE] Still haven't figured out a suitable solution to dealing with the fact that linux manages memory regions with
+            vm_area_structs. Definitely need to do some more research into how I can combine this with things such as
+            VM_COPY, VM_ZERO, MERGE, etc.
+        The solution (for now) is that I only support any connected union of anonymous mappings.
+    - [DONE] Can I use kmap_atomic so I don't have to drop my spin locks?
+
