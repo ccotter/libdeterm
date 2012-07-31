@@ -11,7 +11,7 @@ pid_t getpid2(void)
     return syscall(SYS_getpid); // getpid caches pid's (how though?)
 }
 
-#define ADDR1 (0x10000000)
+#define ADDR1 ((long)0x10000000)
 #define SIZE (0x1000*15)
 
 void child(int id)

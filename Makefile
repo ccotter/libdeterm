@@ -1,4 +1,6 @@
 
+.PHONY = pure fs lib user clean
+
 CC = gcc
 AS = as
 CC_FLAGS = -Wall -Wextra -Wno-unused -Wno-sign-compare -Wno-format -g
@@ -65,36 +67,51 @@ FS_OBJS = $(patsubst fs/%.c, obj/fs/%.o, $(FS_SRCS))
 
 INC_DEPS = $(wildcard inc/*.h)
 
-obj/ulib/%.o: ulib/%.c
+obj:
+	@mkdir -p obj 2>&1 > /dev/null
+
+root:
+	@mkdir -p root 2>&1 > /dev/null
+
+obj/fs: obj
+	@mkdir -p obj/fs 2>&1 > /dev/null
+
+obj/lib: obj
+	@mkdir -p obj/lib 2>&1 > /dev/null
+
+obj/ulib: obj
+	@mkdir -p obj/ulib 2>&1 > /dev/null
+
+obj/ulib/%.o: ulib/%.c obj/ulib
 	@echo + cc[ULIB] $<
 	$(V)$(CC) $(CC_FLAGS) -I. -c -o $@ $<
 
-obj/ulib/link.o: ulib/link.S
+obj/ulib/link.o: ulib/link.S obj/ulib
 	@echo + cc[ULIB] $<
 	$(V)$(CC) $(CC_FLAGS) -I. -c -o $@ $<
 
-root/%: user/%.c $(ULIB_OBJS) $(FS_OBJS) inc/determinism.h obj/ulib/link.o
+root/%: user/%.c $(ULIB_OBJS) $(FS_OBJS) inc/determinism.h obj/ulib/link.o root
 	@echo + cc[USER] $<
 	$(V)$(CC) $(CC_FLAGS) -static obj/ulib/link.o $(FS_OBJS) $(ULIB_OBJS) -I. -o $@ $<
 
-obj/lib/fs_ext.o: lib/fs_ext.c
+obj/lib/fs_ext.o: lib/fs_ext.c obj/lib
 	$(V)$(CC) $(CC_FLAGS) -static -c -I. -o $@ $<
 
 PURE_FLAGS = -nostdlib -nostdinc -nodefaultlibs -fno-builtin
-obj/lib/%.o: lib/%.c
+obj/lib/%.o: lib/%.c obj/lib
 	@echo + cc[LIB] $<
 	$(V)$(CC) $(CC_FLAGS) $(PURE_FLAGS) -I. -c -o $@ $<
 
-obj/lib/%.o: lib/%.S
+obj/lib/%.o: lib/%.S obj/lib
 	@echo + as[LIB] $<
 	$(V)$(CC) $(CC_FLAGS) $(PURE_FLAGS) -I. -c -o $@ $<
 
-obj/fs/%.o: fs/%.c inc/fs.h
+obj/fs/%.o: fs/%.c inc/fs.h obj/fs
 	@echo + cc[FS] $<
 	$(V)$(CC) $(CC_FLAGS) $(PURE_FLAGS) -I. -c -o $@ $<
 
 PURE_FLAGS = -nostdlib -nostdinc -nodefaultlibs -fno-builtin
-root/%: pure/%.c $(LIB_OBJS) $(FS_OBJS)
+root/%: pure/%.c $(LIB_OBJS) $(FS_OBJS) root
 	@echo + cc[PURE] $<
 	$(V)$(CC) $(CC_FLAGS) $(PURE_FLAGS) -I. $(LIB_OBJS) $(FS_OBJS) -e _dstart -o $@ $<
 
@@ -106,16 +123,10 @@ fs: $(FS_OBJS)
 
 pure: $(PURE_OBJS)
 	@echo Made Pure Programs
-#	./makeRoot.pl
-
-rootfs: $(USER_OBJS)
-	@echo + RootFS
-	$(V)cat flist | cpio -o --format=newc > rootfs
 
 user: $(USER_OBJS)
 	@echo Made User Programs
-#	./makeRoot.pl
 
 clean:
-	rm -rf obj/lib/* obj/fs/* root/* obj/pure/* obj/ulib/*
+	rm -rf obj
 

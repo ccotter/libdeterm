@@ -9,15 +9,15 @@
 
 _dstart:
     xor %ebp, %ebp
-    popl %eax # argc
+    pop %rax # argc
     leal (%esp), %esi # argv
     leal 4(%esp, %eax, 4), %edi # env
-    pushl %edi
-    pushl %esi
-    pushl %eax
+    push %rdi
+    push %rsi
+    push %rax
     call _main_setup
     call main
-    pushl %eax
+    push %rax
 do_exit:
     call _exit
     jmp do_exit

@@ -15,7 +15,7 @@
 #define A1 (0x10000000)
 #define S1 (0x1000)
 
-#define LARGE (0x10000000)
+#define LARGE ((void*)0x10000000)
 #define LS (0x1000*1000*5)
 /* 20 MB */
 

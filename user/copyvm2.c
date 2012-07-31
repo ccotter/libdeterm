@@ -11,7 +11,7 @@
 #define A1 (0x10000000)
 #define S1 (0x1000)
 
-#define LARGE (0x10000000)
+#define LARGE ((void*)0x10000000)
 #define LS (0x1000*1000*5)
 /* 20 MB */
 
@@ -104,7 +104,8 @@ void testAlternating(void)
     void *a;
     for (i = 0; i < LS; i += 0x2000)
     {
-        void *a = mmap((void*)(LARGE + i), 0x1000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+        void *a = mmap((void*)(LARGE + i), 0x1000, PROT_READ | PROT_WRITE,
+				MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
         assert((void*)(LARGE + i) == a);
         fill(a, 0x1000, i/sizeof(unsigned long));
     }

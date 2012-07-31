@@ -12,7 +12,7 @@ return_addr:
    this by moving the stack pointer back 12 bytes since the stack is already aligned
    to go into the syscall. We save the old return address of the calling code. */
 syscall6:
-    push %ebp
+    push %rbp
     movl %esp, %ebp
     movl %ebx, %ecx /* Save %ebx. */
 
@@ -28,6 +28,6 @@ syscall6:
 
     movl %ecx, %ebx
     movl %ebp, %esp
-    popl %ebp
+    pop %rbp
     ret
 
