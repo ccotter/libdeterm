@@ -1,12 +1,14 @@
 
-#ifndef _INC_SYSCALL_H_
-#define _INC_SYSCALL_H_
+#ifndef _INC___NRCALL_H_
+#define _INC___NRCALL_H_
 
-#define SYS_mmap 90
-#define SYS_munmap 91
-#define SYS_brk 45
-#define SYS_write 4
-#define SYS_exit 1
+#ifdef __i386__
+
+#define __NR_mmap 90
+#define __NR_munmap 91
+#define __NR_brk 45
+#define __NR_write 4
+#define __NR_exit 1
 
 #define syscall0(N) __syscall(N, 0, 0, 0, 0, 0)
 #define syscall1(N, a1) __syscall(N, a1, 0, 0, 0, 0)
@@ -25,5 +27,16 @@ long syscall6(int N,
 
 long __syscall(int num, long a1, long a2, long a3, long a4, long a5);
 
+#else // __i386__
+
+#define __NR_exit 60
+
+#define syscall0(N) __syscall(0, 0, 0, 0, 0, 0, N)
+#define syscall1(N, a1) __syscall(a1, 0, 0, 0, 0, 0, N)
+
+long __syscall(long a1, long a2, long a3, long a4, long a5, long a6, long N);
+
 #endif
+
+#endif // _INC___NRCALL_H_
 

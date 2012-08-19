@@ -1,2 +1,4 @@
 obj/
 root/
+*.o
+six4
