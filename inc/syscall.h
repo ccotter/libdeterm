@@ -1,42 +1,12 @@
 
-#ifndef _INC___NRCALL_H_
-#define _INC___NRCALL_H_
+#ifndef _INC_SYSCALL_H_
+#define _INC_SYSCALL_H_
 
 #ifdef __i386__
-
-#define __NR_mmap 90
-#define __NR_munmap 91
-#define __NR_brk 45
-#define __NR_write 4
-#define __NR_exit 1
-
-#define syscall0(N) __syscall(N, 0, 0, 0, 0, 0)
-#define syscall1(N, a1) __syscall(N, a1, 0, 0, 0, 0)
-#define syscall2(N, a1, a2) __syscall(N, a1, a2, 0, 0, 0)
-#define syscall3(N, a1, a2, a3) __syscall(N, a1, a2, a3, 0, 0)
-#define syscall4(N, a1, a2, a3, a4) __syscall(N, a1, a2, a3, a4, 0)
-#define syscall5(N, a1, a2, a3, a4, a5) __syscall(N, a1, a2, a3, a4, a5)
-
-long syscall6(int N,
-        unsigned long a1,
-        unsigned long a2,
-        unsigned long a3,
-        unsigned long a4,
-        unsigned long a5,
-        unsigned long a6);
-
-long __syscall(int num, long a1, long a2, long a3, long a4, long a5);
-
-#else // __i386__
-
-#define __NR_exit 60
-
-#define syscall0(N) __syscall(0, 0, 0, 0, 0, 0, N)
-#define syscall1(N, a1) __syscall(a1, 0, 0, 0, 0, 0, N)
-
-long __syscall(long a1, long a2, long a3, long a4, long a5, long a6, long N);
-
+#include <syscall_32.h>
+#else
+#include <syscall_64.h>
 #endif
 
-#endif // _INC___NRCALL_H_
+#endif // _INC_SYSCALL_H_
 
