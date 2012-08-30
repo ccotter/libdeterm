@@ -1,12 +1,28 @@
 
-.PHONY += lib
+LIB-OBJS := \
+             syscall.o \
+			 string.o
 
-obj/lib/syscall.o: inc/*.h
-	$(CC) $(CFLAGS) -c lib/$(ARCH)/syscall.S -o obj/lib/syscall.o
+-include $(patsubst %.o,lib/.deps/%.d,$(LIB-OBJS))
 
-obj/lib/string.o: inc/*.h
-	$(CC) $(CFLAGS) -c lib/string.c -o obj/lib/string.o
+lib/%.o: lib/%.c
+	@echo "CC [$<]"
+	@mkdir -p lib/.deps
+	@gcc -c $(CFLAGS) $< -o $@
+	@gcc -MP -MT $@ -MM $(CFLAGS) $< > $(patsubst lib/%.c,lib/.deps/%.d,$<)
 
-lib: obj/lib/syscall.o obj/lib/string.o
-	ar rcs obj/lib.a obj/lib/syscall.o obj/lib/string.o
+lib/%.o: lib/%.S
+	@echo "AS [$<]"
+	@mkdir -p lib/.deps
+	@gcc -c $(CFLAGS) $< -o $@
+	@gcc -MP -MT $@ -MM $(CFLAGS) $< > $(patsubst lib/%.S,lib/.deps/%.d,$<)
+
+lib/lib.a: $(patsubst %.o,lib/%.o, $(LIB-OBJS))
+	@echo "AR [$@]"
+	@ar rcs lib/lib.a $(patsubst %.o,lib/%.o, $(LIB-OBJS))
+
+clean-lib:
+	rm -rf lib/.deps lib/*.o lib/lib.a
+
+.PHONY += clean-lib
 

@@ -1,5 +1,6 @@
 obj/
 root/
 *.o
-six4
 .deps
+user/exe
+*.a

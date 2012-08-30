@@ -2,14 +2,7 @@
 #include <syscall.h>
 #include <string.h>
 
-int main(void);
-
-void _start(void)
-{
-	main();
-}
-
-void conv(char *buf, int num)
+static void conv(char *buf, int num)
 {
 	int at = 0, i, l;
 	while (num > 0)
