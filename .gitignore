@@ -2,3 +2,4 @@ obj/
 root/
 *.o
 six4
+.deps

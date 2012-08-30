@@ -2,6 +2,7 @@
 .PHONY = obj/lib lib clean
 
 include lib/Makefile
+include user/Makefile
 
 ARCH = x86_64
 CC = gcc
@@ -13,9 +14,6 @@ V =
 
 CFLAGS += -Iinc -fno-builtin
 
-six4: lib user/six4.c
-	$(V)$(CC) $(CFLAGS) -static user/six4.c obj/lib.a -o six4
-
 clean:
-	rm -rf obj/lib/* six4
+	rm -rf
 
