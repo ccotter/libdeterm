@@ -8,5 +8,5 @@
 #include <syscall_64.h>
 #endif
 
-#endif // _INC_SYSCALL_H_
+#endif /* _INC_SYSCALL_H_ */
 

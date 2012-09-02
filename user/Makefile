@@ -1,24 +1,31 @@
 
 USER-OBJS := \
-	          six4.o
+	          six4.o \
+			  sync_test.o \
+			  regress.o
 
 USER-EXES := $(patsubst %.o,user/exe/%, $(USER-OBJS))
 
 -include $(patsubst %.o,user/.deps/%.d,$(USER-OBJS))
 
 user/%.o: user/%.c
-	@echo "CC [$<]"
-	@mkdir -p user/.deps
-	@gcc -c $(CFLAGS) $< -o $@
-	@gcc -MP -MT $@ -MM $(CFLAGS) $< > $(patsubst user/%.c,user/.deps/%.d,$<)
+	@echo "CC [$<] > $@"
+	$(V)mkdir -p user/.deps
+	$(V)gcc -c $(CFLAGS) $< -o $@
+	$(V)gcc -MP -MT $@ -MM $(CFLAGS) $< > $(patsubst user/%.c,user/.deps/%.d,$<)
 
 user/exe/%: user/%.o lib/lib.a
 	@echo EXE [$@]
-	@mkdir -p user/exe
-	@gcc $^ -o $@
+	$(V)mkdir -p user/exe
+	$(V)gcc $^ -o $@
 
 clean-user:
 	rm -rf user/.deps user/*.o $(USER-EXES)
+
+USER-TARGETS := $(USER-EXES)
+ALL-TARGETS += $(USER-TARGETS)
+
+user: $(USER-TARGETS)
 
 .PHONY += clean-user
 

@@ -45,4 +45,4 @@ long	strtol(const char *s, char **endptr, int base);
 
 char *	strerror(int err);
 
-#endif /* not _INC_STRING_H_ */
+#endif /* _INC_STRING_H_ */

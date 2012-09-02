@@ -25,8 +25,7 @@ int main(void)
 {
 	int rc;
 	if ((rc = become_deterministic())) {
-		write(1, "BECOME\n", 7);
-		exit(123);
+        iprintf("Failed to become deterministic\n");
 	}
 	long ret = dput(0, DET_START, 0, 0, 0);
 	if (0 == ret) {

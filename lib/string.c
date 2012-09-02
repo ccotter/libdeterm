@@ -15,10 +15,11 @@
 
 #include <string.h>
 
-// Using assembly for memset/memmove
-// makes some difference on real hardware,
-// but it makes an even bigger difference on bochs.
-// Primespipe runs 3x faster this way.
+/* Using assembly for memset/memmove
+ * makes some difference on real hardware,
+ * but it makes an even bigger difference on bochs.
+ * Primespipe runs 3x faster this way.
+ */
 #define ASM 1
 
 int
@@ -51,7 +52,7 @@ strncpy(char *dst, const char *src, size_t size)
 	ret = dst;
 	for (i = 0; i < size; i++) {
 		*dst++ = *src;
-		// If strlen(src) < size, null-pad 'dst' out to 'size' chars
+		/* If strlen(src) < size, null-pad 'dst' out to 'size' chars */
 		if (*src != '\0')
 			src++;
 	}
@@ -91,8 +92,9 @@ strncmp(const char *p, const char *q, size_t n)
 		return (int) ((unsigned char) *p - (unsigned char) *q);
 }
 
-// Return a pointer to the first occurrence of 'c' in 's',
-// or a null pointer if the string has no 'c'.
+/* Return a pointer to the first occurrence of 'c' in 's',
+ * or a null pointer if the string has no 'c'.
+ */
 char *
 strchr(const char *s, char c)
 {
@@ -139,7 +141,7 @@ memmove(void *dst, const void *src, size_t n)
 		else
 			asm volatile("std; rep movsb\n"
 				:: "D" (d-1), "S" (s-1), "c" (n) : "cc", "memory");
-		// Some versions of GCC rely on DF being clear
+		/* Some versions of GCC rely on DF being clear */
 		asm volatile("cld" ::: "cc");
 	} else {
 		if ((long)s%4 == 0 && (long)d%4 == 0 && n%4 == 0)
@@ -226,17 +228,17 @@ strtol(const char *s, char **endptr, int base)
 	int neg = 0;
 	long val = 0;
 
-	// gobble initial whitespace
+	/* gobble initial whitespace */
 	while (*s == ' ' || *s == '\t')
 		s++;
 
-	// plus/minus sign
+	/* plus/minus sign */
 	if (*s == '+')
 		s++;
 	else if (*s == '-')
 		s++, neg = 1;
 
-	// hex or octal base prefix
+	/* hex or octal base prefix */
 	if ((base == 0 || base == 16) && (s[0] == '0' && s[1] == 'x'))
 		s += 2, base = 16;
 	else if (base == 0 && s[0] == '0')
@@ -244,7 +246,7 @@ strtol(const char *s, char **endptr, int base)
 	else if (base == 0)
 		base = 10;
 
-	// digits
+	/* digits */
 	while (1) {
 		int dig;
 
@@ -259,7 +261,7 @@ strtol(const char *s, char **endptr, int base)
 		if (dig >= base)
 			break;
 		s++, val = (val * base) + dig;
-		// we don't properly detect overflow!
+		/* BUG we don't properly detect overflow! */
 	}
 
 	if (endptr)

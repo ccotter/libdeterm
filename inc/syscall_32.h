@@ -25,5 +25,5 @@ long syscall6(int N,
 
 long __syscall(int num, long a1, long a2, long a3, long a4, long a5);
 
-#endif // _INC_SYSCALL_32_H_
+#endif /* _INC_SYSCALL_32_H_ */
 

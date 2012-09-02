@@ -3,7 +3,6 @@
 #define _INC_SYSCALL_64_H
 
 #define __NR_write 1
-#define __NR_fork 57
 #define __NR_exit 60
 #define __NR_dput 309
 #define __NR_dget 310
@@ -26,5 +25,5 @@
 
 long __syscall(long a1, long a2, long a3, long a4, long a5, long a6, long N);
 
-#endif // _INC_SYSCALL_64_H
+#endif /* _INC_SYSCALL_64_H */
 
