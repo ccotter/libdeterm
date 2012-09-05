@@ -3,9 +3,11 @@ LIB-OBJS := \
              syscall.o \
 			 string.o \
 			 determinism.o \
+			 determinism_asm.o \
 			 debug.o \
 			 printfmt.o \
-			 sprintf.o
+			 sprintf.o \
+			 entry.o
 
 -include $(patsubst %.o,lib/.deps/%.d,$(LIB-OBJS))
 

@@ -50,27 +50,27 @@ typedef struct printstate {
 // Get an unsigned int of various possible sizes from a varargs list,
 // depending on the lflag parameter.
 static uintmax_t
-getuint(printstate *st, va_list *ap)
+getuint(printstate *st, va_list ap)
 {
 	if (st->flags & F_LL)
-		return va_arg(*ap, unsigned long long);
+		return va_arg(ap, unsigned long long);
 	else if (st->flags & F_L)
-		return va_arg(*ap, unsigned long);
+		return va_arg(ap, unsigned long);
 	else
-		return va_arg(*ap, unsigned int);
+		return va_arg(ap, unsigned int);
 }
 
 // Same as getuint but signed - can't use getuint
 // because of sign extension
 static intmax_t
-getint(printstate *st, va_list *ap)
+getint(printstate *st, va_list ap)
 {
 	if (st->flags & F_LL)
-		return va_arg(*ap, long long);
+		return va_arg(ap, long long);
 	else if (st->flags & F_L)
-		return va_arg(*ap, long);
+		return va_arg(ap, long);
 	else
-		return va_arg(*ap, int);
+		return va_arg(ap, int);
 }
 
 // Print padding characters, and an optional sign before a number.
@@ -310,7 +310,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// (signed) decimal
 		case 'd':
-			num = getint(&st, &ap);
+			num = getint(&st, ap);
 			if ((intmax_t) num < 0) {
 				num = -(intmax_t) num;
 				st.signc = '-';
@@ -320,17 +320,17 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// unsigned decimal
 		case 'u':
-			putint(&st, getuint(&st, &ap), 10);
+			putint(&st, getuint(&st, ap), 10);
 			break;
 
 		// (unsigned) octal
 		case 'o':
-			putint(&st, getuint(&st, &ap), 8);
+			putint(&st, getuint(&st, ap), 8);
 			break;
 
 		// (unsigned) hexadecimal
 		case 'x':
-			putint(&st, getuint(&st, &ap), 16);
+			putint(&st, getuint(&st, ap), 16);
 			break;
 
 		// pointer

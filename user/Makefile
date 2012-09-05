@@ -2,7 +2,9 @@
 USER-OBJS := \
 	          six4.o \
 			  sync_test.o \
-			  regress.o
+			  regress.o \
+			  grand.o \
+			  regs.o
 
 USER-EXES := $(patsubst %.o,user/exe/%, $(USER-OBJS))
 
@@ -17,7 +19,7 @@ user/%.o: user/%.c
 user/exe/%: user/%.o lib/lib.a
 	@echo EXE [$@]
 	$(V)mkdir -p user/exe
-	$(V)gcc $^ -o $@
+	$(V)gcc $(CFLAGS) $^ -o $@
 
 clean-user:
 	rm -rf user/.deps user/*.o $(USER-EXES)

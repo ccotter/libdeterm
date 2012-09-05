@@ -2,11 +2,7 @@
 #ifndef _INC_SYSCALL_64_H
 #define _INC_SYSCALL_64_H
 
-#define __NR_write 1
-#define __NR_exit 60
-#define __NR_dput 309
-#define __NR_dget 310
-#define __NR_dret 311
+#include <asm/syscall_64.h>
 
 #define syscall0(N) \
     __syscall(0, 0, 0, 0, 0, 0, N)

@@ -15,6 +15,7 @@
 #ifndef _INC_STDARG_H
 #define	_INC_STDARG_H
 
+#ifdef __i386__
 typedef char *va_list;
 
 #define	__va_size(type) \
@@ -27,5 +28,15 @@ typedef char *va_list;
 	(*(type *)((ap) += __va_size(type), (ap) - __va_size(type)))
 
 #define	va_end(ap)	((void)0)
+
+#else
+
+typedef __builtin_va_list va_list;
+#define va_start(ap, last) __builtin_va_start(ap,last)
+#define va_arg(ap, type) __builtin_va_arg(ap, type)
+#define va_end(ap) __builtin_va_end(ap)
+
+
+#endif
 
 #endif	/* !_INC_STDARG_H */

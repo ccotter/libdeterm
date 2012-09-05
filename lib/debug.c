@@ -16,7 +16,6 @@
 
 #include <debug.h>
 #include <stdio.h>
-//#include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
 #include <syscall.h>
@@ -110,5 +109,53 @@ int ivprintf(const char *fmt, va_list ap)
     ret = vsnprintf(buffer, sizeof(buffer), fmt, ap);
 	write(1, buffer, ret);
 	return ret;
+}
+
+static const char *regnames[] = {
+	"R15",
+	"R14",
+	"R13",
+	"R12",
+	"RBP",
+	"RBX",
+	"R11",
+	"R10",
+	"R9",
+	"R8",
+	"RAX",
+	"RCX",
+	"RDX",
+	"RSI",
+	"RDI",
+	"ORIG_RAX",
+	"RIP",
+	"CS",
+	"EFLAGS",
+	"RSP",
+	"SS",
+	"FS_BASE",
+	"GS_BASE",
+	"DS",
+	"ES",
+	"FS",
+	"GS",
+};
+
+static inline void print_reg(const struct user_regs_struct *regs, int off)
+{
+	iprintf("%10s: %016lx    ", regnames[off],
+			*(unsigned long*)(((char*)regs) + off * sizeof(long)));
+}
+
+void print_regs(const struct user_regs_struct *regs)
+{
+	unsigned int i;
+	for (i = 0; i < sizeof(*regs) / sizeof(long); ++i) {
+		print_reg(regs, i);
+		if (((i+1) % 3) == 0)
+			iprintf("\n");
+	}
+	if ((i % 3) != 0)
+		iprintf("\n");
 }
 
