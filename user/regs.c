@@ -29,14 +29,24 @@ int main(void)
 	print_regs(&regs);
 	ret = dput_regs(0, &regs, DET_START);
 	if (0 == ret) {
+		iprintf("SKLDFDSSDFFNSD F\n\n\n\n");
+		int ewq=0,asd;
 		iprintf("Child R15=%ld\n", read_r15());
+		//while(1);
+		asd = (int)(1/ewq);
+		(void)asd;
 		dret();
 		iprintf("FUCK\n");
 	} else {
+		int i;
 		iprintf("parent %d\n", ret);
+		for(i = 0; i < 1000000000; ++i);
+		iprintf("ret code %d\n", dput(0, DET_GET_STATUS, 0, 0, 0));
+		iprintf("ret code %d\n", dput(0, DET_GET_STATUS, 0, 0, 0));
 		dget_regs(0, &regs, 0);
 		print_regs(&regs);
-		dput(0, DET_KILL, 0, 0, 0);
+		//i = dput(0, DET_KILL|DET_KILL_POISON, 0, 0, 0);
+		iprintf("KILLLLL %d\n", i);
 		while(1);
 	}
 	return 0;

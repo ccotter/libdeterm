@@ -11,23 +11,27 @@
 #define DET_GET_STATUS           3
 #define DET_KILL                 4
 #define DET_ALLOW_SIGNALS        5
+#define DET_VM_ZERO              6
+
+#define DET_DONT_WAIT            0x100
+#define DET_KILL_POISON          0x100
+
+#define DET_PROT_READ            0x100
+#define DET_PROT_WRITE           0x200
+#define DET_PROT_EXEC            0x400
+#define DET_PROT_NONE            0x000
+
+#define DET_START                0x00010000
+#define DET_DEBUG     	   	     0x80000000
 
 #define DET_GENERAL_REGS         (DET_REGS | 0x100)
 #define DET_FP_REGS              (DET_REGS | 0x200)
 
-#if __i386__
-#error "not supported yet"
-#else
-
-#ifdef __ASSEMBLER__
-#define DET_START                (0x0001 << 16)
-#define DET_DEBUG     	   	     (0x8000 << 16)
-#else
-#define DET_START                (0x0001L << 16)
-#define DET_DEBUG     	   	     (0x8000L << 16)
-#endif
-
-#endif
+#define DET_S_READY   1 /* Alive and runnable (not in run queue). */
+#define DET_S_RUNNING 2 /* Alive and in run queue. */
+#define DET_S_EXCEPT  3 /* Process killed due to illegal behavior. */
+#define DET_S_EXIT_NORMAL    4 /* Process exited normally. */
+#define DET_S_EXCEPT_DEAD    5 /* When an excepted task was killed explicitly by the parent. */
 
 #endif
 

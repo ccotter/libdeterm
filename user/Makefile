@@ -3,6 +3,7 @@ USER-OBJS := \
 	          six4.o \
 			  sync_test.o \
 			  regress.o \
+			  zero.o \
 			  grand.o \
 			  regs.o
 

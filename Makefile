@@ -13,7 +13,7 @@ include $(patsubst %,%/Makefile,$(DET-TARGETS))
 
 # Some global macros.
 ARCH = x86_64
-CFLAGS += -Wall -Wextra -Werror -nostdinc -nostdlib -g -Wno-unused-variable -std=gnu99
+CFLAGS += -Wall -Wextra -Werror -nostdinc -nostdlib -g -Wno-unused -std=gnu99
 ASFLAGS += -Wall -Wextra -Werror -nostdinc -nostdlib -g
 
 V = @
