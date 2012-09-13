@@ -5,7 +5,8 @@ USER-OBJS := \
 			  regress.o \
 			  zero.o \
 			  grand.o \
-			  regs.o
+			  regs.o \
+			  copy.o
 
 USER-EXES := $(patsubst %.o,user/exe/%, $(USER-OBJS))
 

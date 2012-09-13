@@ -17,7 +17,6 @@ __syscall:
 	mov %rsp, %rbp
 	movq 16(%rsp), %rax
 	movq %rcx, %r10
-	movq %rsp, %r9
 	syscall
 	pop %rbp
 	ret
