@@ -29,6 +29,7 @@ int main(void)
 	print_regs(&regs);
 	ret = dput_regs(0, &regs, DET_START);
 	if (0 == ret) {
+		while(1);
 		iprintf("SKLDFDSSDFFNSD F\n\n\n\n");
 		int ewq=0,asd;
 		iprintf("Child R15=%ld\n", read_r15());
@@ -38,6 +39,7 @@ int main(void)
 		dret();
 		iprintf("FUCK\n");
 	} else {
+		dget(0,0,0,0,0);
 		int i;
 		iprintf("parent %d\n", ret);
 		for(i = 0; i < 1000000000; ++i);

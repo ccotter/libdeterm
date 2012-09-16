@@ -28,7 +28,7 @@ static inline int munmap(void *addr, size_t len)
 #define PAGE_SIZE 0x1000
 #define PAGE_MASK (~(PAGE_SIZE-1))
 
-#define PAGE_ALIGN(addr) (((addr) & PAGE_MASK) + PAGE_SIZE)
+#define PAGE_ALIGN(addr) ((addr) + (PAGE_SIZE - (((addr)-1) & ~PAGE_MASK)) - 1)
 #define LOWER_PAGE(addr) PAGE_ALIGN((addr) - PAGE_SIZE + 1)
 
 #endif

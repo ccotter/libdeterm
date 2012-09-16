@@ -6,7 +6,8 @@ USER-OBJS := \
 			  zero.o \
 			  grand.o \
 			  regs.o \
-			  copy.o
+			  copy.o \
+			  fastfork.o
 
 USER-EXES := $(patsubst %.o,user/exe/%, $(USER-OBJS))
 
