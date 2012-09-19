@@ -19,6 +19,56 @@ static inline void is_all_x(void *_ptr, unsigned char val, size_t len)
 	}
 }
 
+#define CHILD_OFF 0x10000
+
+static void test2(void)
+{
+	int rc;
+	unsigned long *addr = (unsigned long*)(ADDR1);
+	unsigned long *caddr = (unsigned long*)((unsigned long)addr + CHILD_OFF);
+	void *map_addr = (void*)LOWER_PAGE((unsigned long)addr);
+	void *map_caddr = (void*)LOWER_PAGE((unsigned long)caddr);
+	unsigned long len = 0x1000000;
+	unsigned long map_len = ((unsigned long)addr - (unsigned long)map_addr) + len;
+	map_len = PAGE_ALIGN(map_len);
+	if ((rc = dput(0, 0, 0, 0, 0)) < 0) {
+		die(rc);
+	} else if (rc > 0) {
+		/* Parent. */
+		unsigned long *tmp = mmap(map_addr, map_len, PROT_READ|PROT_WRITE,
+				MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE,-1,0);
+		tassert(tmp==map_addr);
+		memset(addr, 0xab, len);
+		rc = dput(0, DET_VM_COPY | DET_START | DET_PROT_WRITE | DET_PROT_READ,
+				(unsigned long)addr, len, (unsigned long)map_caddr);
+		tassert(rc > 0);
+		rc = dget(0, 0, 0, 0, 0);
+		is_all_x(addr, 0xab, len);
+		tassert(rc > 0);
+
+		rc = dput(0, DET_VM_COPY | DET_START | DET_PROT_WRITE | DET_PROT_READ,
+				(unsigned long)addr, len, (unsigned long)map_caddr);
+		tassert(rc > 0);
+	} else {
+		/* Child. */
+		is_all_x((unsigned char*)caddr, 0xab, len);
+		memset(caddr, 0x12, len);
+		is_all_x((unsigned char*)caddr, 0x12, len);
+		dret();
+		while(1);
+		is_all_x((unsigned char*)caddr, 0xab, len);
+		memset(caddr, 0x12, len);
+		is_all_x((unsigned char*)caddr, 0x12, len);
+		dret();
+	}
+	if ((rc = dput(0, DET_KILL, 0, 0, 0)) < 0)
+		die(rc);
+	else if (rc != DET_S_EXIT_NORMAL)
+		iprintf("didn't exit cleanly\n"), exit(1);
+	iprintf("test2 success\n");
+	munmap(map_addr, map_len);
+}
+
 static void test1(void)
 {
 	int rc;
@@ -114,7 +164,6 @@ static void test1_awkward_map(unsigned long loff, unsigned long roff)
 		iprintf("didn't exit cleanly\n"), exit(1);
 }
 
-
 static void test1_leaking(unsigned long len, unsigned long off)
 {
 	int rc;
@@ -151,19 +200,17 @@ static void test1_leaking(unsigned long len, unsigned long off)
 	munmap(map_addr, map_len);
 }
 
+#define DSTADDR (0x30000000)
 
-#define CHILD_OFF 0x10000
-
-static void test2(void)
+static void test_dst(unsigned long len, unsigned long off, unsigned long dst_off)
 {
 	int rc;
-	unsigned long *addr = (unsigned long*)(ADDR1);
-	unsigned long *caddr = (unsigned long*)((unsigned long)addr + CHILD_OFF);
+	unsigned long *addr = (unsigned long*)(DSTADDR-off);
 	void *map_addr = (void*)LOWER_PAGE((unsigned long)addr);
-	void *map_caddr = (void*)LOWER_PAGE((unsigned long)caddr);
-	unsigned long len = 0x1000000;
+	len += 2*off;
 	unsigned long map_len = ((unsigned long)addr - (unsigned long)map_addr) + len;
 	map_len = PAGE_ALIGN(map_len);
+	iprintf("map_len= %ld\n",map_len/1024/1024);
 	if ((rc = dput(0, 0, 0, 0, 0)) < 0) {
 		die(rc);
 	} else if (rc > 0) {
@@ -173,32 +220,25 @@ static void test2(void)
 		tassert(tmp==map_addr);
 		memset(addr, 0xab, len);
 		rc = dput(0, DET_VM_COPY | DET_START | DET_PROT_WRITE | DET_PROT_READ,
-				(unsigned long)addr, len, (unsigned long)map_caddr);
+				(unsigned long)addr, len, (unsigned long)(addr) + dst_off);
 		tassert(rc > 0);
-		rc = dget(0, 0, 0, 0, 0);
-		is_all_x(addr, 0xab, len);
+		rc = dget(0, DET_VM_COPY | DET_PROT_WRITE | DET_PROT_READ | DET_START,
+				(unsigned long)addr, len, (unsigned long)(addr) + dst_off);
 		tassert(rc > 0);
-
-		rc = dput(0, DET_VM_COPY | DET_START | DET_PROT_WRITE | DET_PROT_READ,
-				(unsigned long)addr, len, (unsigned long)map_caddr);
-		tassert(rc > 0);
+		is_all_x(addr, 0x12, len);
 	} else {
 		/* Child. */
-		is_all_x((unsigned char*)caddr, 0xab, len);
-		memset(caddr, 0x12, len);
-		is_all_x((unsigned char*)caddr, 0x12, len);
+		addr = (unsigned long*)((unsigned long)addr + dst_off);
+		is_all_x((unsigned char*)addr, 0xab, len);
+		memset(addr, 0x12, len);
 		dret();
-		while(1);
-		is_all_x((unsigned char*)caddr, 0xab, len);
-		memset(caddr, 0x12, len);
-		is_all_x((unsigned char*)caddr, 0x12, len);
+		is_all_x((unsigned char*)addr, 0x12, len);
 		dret();
 	}
 	if ((rc = dput(0, DET_KILL, 0, 0, 0)) < 0)
 		die(rc);
 	else if (rc != DET_S_EXIT_NORMAL)
 		iprintf("didn't exit cleanly\n"), exit(1);
-	iprintf("test2 success\n");
 	munmap(map_addr, map_len);
 }
 
@@ -214,18 +254,28 @@ int main(void)
 	if (0 > (rc = master_allow_signals(&set, sizeof(set))))
 		die(rc);
 
-	/*for (i = 1; ; i+=0x17000) {
+	/*
+	for (i = 1; ; i+=0x17000) {
 			iprintf("at %lx\n",i);
 		for (j = 0; j < 5; ++j)
 			test1_leaking(i,j);
-	}*/
+	}
 	for (i = 0; i < 100; ++i) {
 		iprintf("%lx %lx\n", i);
 		for (j = 0; j < 100; ++j) {
 			test1_awkward_map(i, j);
 		}
+	}*/
+
+	for (i = 0; i < 2500; ++i) {
+		iprintf("At %lx\n",i);
+		for (j = 0; j < 250; ++j) {
+			iprintf("%d %d\n",i,j);
+			test_dst(0x1000000 *(i+1), j, 0x20000 + j * 0x1000);
+		}
 	}
 
+out:
 	iprintf("Success\n");
 	return 0;
 }
