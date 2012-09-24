@@ -29,20 +29,28 @@ int main(void)
 	print_regs(&regs);
 	ret = dput_regs(0, &regs, DET_START);
 	if (0 == ret) {
-		while(1);
 		iprintf("SKLDFDSSDFFNSD F\n\n\n\n");
 		int ewq=0,asd;
 		iprintf("Child R15=%ld\n", read_r15());
 		//while(1);
-		asd = (int)(1/ewq);
 		(void)asd;
+		dret();
+		dret();
+		dret();
 		dret();
 		iprintf("FUCK\n");
 	} else {
-		dget(0,0,0,0,0);
+		dput(0,0,0,0,0);
+		dput(0,DET_START,0,0,0);
+		dput(0,DET_START,0,0,0);
+		dput(0,DET_START,0,0,0);
+		dput(0,0,0,0,0);
 		int i;
 		iprintf("parent %d\n", ret);
 		for(i = 0; i < 1000000000; ++i);
+		iprintf("ret code %d\n", dput(0, DET_GET_STATUS, 0, 0, 0));
+		iprintf("ret code %d\n", dput(0, DET_GET_STATUS, 0, 0, 0));
+		iprintf("ret code %d\n", dput(0, DET_GET_STATUS, 0, 0, 0));
 		iprintf("ret code %d\n", dput(0, DET_GET_STATUS, 0, 0, 0));
 		iprintf("ret code %d\n", dput(0, DET_GET_STATUS, 0, 0, 0));
 		dget_regs(0, &regs, 0);

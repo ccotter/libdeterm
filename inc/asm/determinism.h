@@ -13,6 +13,8 @@
 #define DET_ALLOW_SIGNALS        5
 #define DET_VM_ZERO              6
 #define DET_VM_COPY              7
+#define DET_SNAP                 8
+#define DET_MERGE                9
 
 #define DET_DONT_WAIT            0x100
 #define DET_KILL_POISON          0x100

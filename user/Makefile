@@ -1,7 +1,10 @@
 
 USER-OBJS := \
 	          six4.o \
+			  fastsnap.o \
 			  sync_test.o \
+			  test.o \
+			  merge.o \
 			  regress.o \
 			  zero.o \
 			  grand.o \
