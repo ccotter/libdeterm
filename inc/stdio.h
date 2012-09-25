@@ -18,7 +18,7 @@
 #ifndef _INC_STDIO_H
 #define _INC_STDIO_H
 
-#include <types.h>
+#include <sys/types.h>
 #include <stdarg.h>
 
 /* Primitive formatted printing functions: lib/printfmt.c */

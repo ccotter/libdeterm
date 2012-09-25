@@ -3,7 +3,7 @@
 #define _INC_SIGNAL_H
 
 #include <string.h>
-#include <errno-base.h>
+#include <errno.h>
 
 #ifdef __i386__
 #error "not supported yet"

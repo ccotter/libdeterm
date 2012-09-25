@@ -7,7 +7,9 @@ LIB-OBJS := \
 			 debug.o \
 			 printfmt.o \
 			 sprintf.o \
-			 entry.o
+			 entry.o \
+			 stdlib.o \
+			 syscalls.o
 
 -include $(patsubst %.o,lib/.deps/%.d,$(LIB-OBJS))
 

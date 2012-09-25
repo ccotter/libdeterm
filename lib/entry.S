@@ -1,6 +1,5 @@
 
-#include <asm/syscall.h>
-
+.globl _init
 .globl _start
 
 _start:
@@ -9,6 +8,7 @@ _start:
 	pop %rdi
 	leaq (%rsp), %rsi /* argv */
 	leaq 8(%rsp, %rax, 8), %rdx /* env */
+	call __init
 	call main
 	movq %rax, %rdi
 	call exit

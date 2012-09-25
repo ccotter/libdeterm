@@ -7,7 +7,7 @@
  * Aug 2012.
  */
 
-#include <types.h>
+#include <sys/types.h>
 #include <stdio.h>
 #include <assert.h>
 

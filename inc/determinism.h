@@ -3,7 +3,7 @@
 #define _INC_DETERMINISM_H
 
 #include <sys/user.h>
-#include <types.h>
+#include <sys/types.h>
 #include <signal.h>
 #include <asm/determinism.h>
 
@@ -23,6 +23,10 @@ void get_register_state(struct user_regs_struct *regs);
 long dput_regs(pid_t pid, const struct user_regs_struct *regs, unsigned long flags);
 long dget_regs(pid_t pid, struct user_regs_struct *regs, unsigned long flags);
 long master_allow_signals(sigset_t *set, size_t size);
+
+/* TODO to go into a dthread.h header */
+pid_t dfork(void);
+int dwait(pid_t child);
 
 #endif
 

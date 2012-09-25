@@ -16,7 +16,7 @@
 #ifndef _INC_STRING_H_
 #define _INC_STRING_H_
 
-#include <types.h>
+#include <sys/types.h>
 
 int	strlen(const char *s);
 char *	strcpy(char *dst, const char *src);
@@ -40,8 +40,6 @@ void *	memcpy(void *dst, const void *src, size_t len);
 void *	memmove(void *dst, const void *src, size_t len);
 int	memcmp(const void *s1, const void *s2, size_t len);
 void *	memchr(const void *str, int c, size_t len);
-
-long	strtol(const char *s, char **endptr, int base);
 
 char *	strerror(int err);
 

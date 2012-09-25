@@ -15,6 +15,7 @@
  */
 
 #include <debug.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 #include <ctype.h>
@@ -80,16 +81,6 @@ debug_dump(const char *file, int line, const void *ptr, int size)
 		iprintf("%08x: %08x %08x %08x %08x %s",
 			ptr, v[0], v[1], v[2], v[3], buf);
 	}
-}
-
-ssize_t write(int fd, const void *buf, size_t count)
-{
-	return syscall3(__NR_write, (long)fd, (long)buf, (long)count);
-}
-
-void exit(int status)
-{
-	syscall1(__NR_exit, (long)status);
 }
 
 int iprintf(const char *fmt, ...)

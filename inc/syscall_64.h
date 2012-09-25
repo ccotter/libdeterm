@@ -2,7 +2,7 @@
 #ifndef _INC_SYSCALL_64_H
 #define _INC_SYSCALL_64_H
 
-#include <asm/syscall_64.h>
+#include <unistd.h>
 
 #define syscall0(N) \
     __syscall(0, 0, 0, 0, 0, 0, N)

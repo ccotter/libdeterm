@@ -1,6 +1,6 @@
 
 #include <asm/determinism.h>
-#include <asm/syscall.h>
+#include <asm/unistd.h>
 #include <asm/regs.h>
 
 .globl get_register_state

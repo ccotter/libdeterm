@@ -1,6 +1,7 @@
 
 #include <determinism.h>
 #include <syscall.h>
+#include <unistd.h>
 
 long dput(pid_t childid, long flags, unsigned long start, size_t size,
 		unsigned long dststart)
