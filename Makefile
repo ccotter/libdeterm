@@ -16,7 +16,11 @@ ARCH = x86_64
 CFLAGS += -Wall -Wextra -Werror -nostdinc -nostdlib -g -Wno-unused -std=gnu99
 ASFLAGS += -Wall -Wextra -Werror -nostdinc -nostdlib -g
 
-V = @
+ifeq ($(V),yes)
+	V =
+else
+	V = @
+endif
 
 CFLAGS += -Iinc -fno-builtin
 

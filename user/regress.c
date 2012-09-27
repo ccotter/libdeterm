@@ -2,6 +2,7 @@
 #include <determinism.h>
 #include <debug.h>
 #include <syscall.h>
+#include <stdlib.h>
 
 int main(void)
 {

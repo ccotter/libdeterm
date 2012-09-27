@@ -96,12 +96,28 @@ strncmp(const char *p, const char *q, size_t n)
  * or a null pointer if the string has no 'c'.
  */
 char *
-strchr(const char *s, char c)
+strchr(const char *s, int _c)
 {
+	char c = (char)_c;
 	while (*s != c)
 		if (*s++ == 0)
 			return NULL;
-	return (char *) s;
+	return (char*)s;
+}
+
+char *
+strrchr(const char *s, int _c)
+{
+	char c = (char)_c;
+	if ('\0' == c)
+		return strchr(s, c);
+	const char *last = NULL;
+	while (*s) {
+		if (*s == c)
+			last = s;
+		++s;
+	}
+	return (char*)last;
 }
 
 #if ASM

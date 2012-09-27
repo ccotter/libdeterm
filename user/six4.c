@@ -1,8 +1,8 @@
 
 #include <string.h>
 #include <determinism.h>
-
-#include <debug.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 static void conv(char *buf, int num)
 {

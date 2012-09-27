@@ -4,6 +4,7 @@
 #include <string.h>
 #include <mman.h>
 #include <syscall.h>
+#include <stdlib.h>
 
 static inline void die(int x)
 {

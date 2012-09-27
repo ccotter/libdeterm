@@ -25,8 +25,8 @@ long dget_regs(pid_t pid, struct user_regs_struct *regs, unsigned long flags);
 long master_allow_signals(sigset_t *set, size_t size);
 
 /* TODO to go into a dthread.h header */
-pid_t dfork(void);
-int dwait(pid_t child);
+//pid_t dfork(void);
+//int dwait(pid_t child);
 
 #endif
 

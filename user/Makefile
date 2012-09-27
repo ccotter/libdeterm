@@ -5,6 +5,7 @@ USER-OBJS := \
 			  sync_test.o \
 			  test.o \
 			  merge.o \
+			  fs_test.o \
 			  regress.o \
 			  zero.o \
 			  grand.o \

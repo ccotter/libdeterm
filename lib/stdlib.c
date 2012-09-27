@@ -9,12 +9,14 @@
 /* Declare functions used internally by this library. */
 void __init(int argc, char **argv, char **envp);
 void __panic(const char *msg, ...);
+int __dfs_init_clean(void);
 
 #define __DET_MASTER 1
 #define __DET_DETERMINISTIC 2
 
 /* Internal variables. */
 int __is_init;
+int __dfs_init;
 int __det_status;
 char **__envp;
 int __exit_status;
@@ -38,6 +40,11 @@ void __init(int argc, char **argv, char **envp)
 			__panic("Can not become deterministic: illegal memory maps.");
 			break;
 	}
+
+	if (__dfs_init_clean())
+		__panic("Error initializing deterministic file system.");
+	__dfs_init = 1;
+
 }
 
 char *getenv(const char *name)
@@ -53,13 +60,13 @@ char *getenv(const char *name)
 
 void exit(int status)
 {
-	if (__DET_MASTER == __det_status) {
-		syscall1(__NR_exit, (long)status);
-		while(1);
-	} else {
+	if (__DET_DETERMINISTIC == __det_status) {
 		__exit_status = 0xff & status;
 		dret();
 		while(1) dret();
+	} else {
+		syscall1(__NR_exit, (long)status);
+		while(1);
 	}
 }
 

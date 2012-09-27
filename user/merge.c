@@ -3,6 +3,7 @@
 #include <debug.h>
 #include <mman.h>
 #include <determinism.h>
+#include <stdlib.h>
 
 /* Original credit to PIOS:
  * Bryan Ford (https://github.com/bford/Determinator) */

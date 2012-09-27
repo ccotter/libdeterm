@@ -2,6 +2,7 @@
 #include <determinism.h>
 #include <debug.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define die(x) do { iprintf("error at line %d: %d\n", __LINE__, x), exit(x); } while(0)
 #define tassert(x) do { if (!(x)) { iprintf("ooops %d\n", __LINE__); asm("hlt"); }} while (0)
@@ -141,8 +142,6 @@ int main(void)
 {
 	int rc;
 	sigset_t set;
-	if (0 > (rc = become_deterministic()))
-		die(rc);
 
 	sigfillset(&set);
 	sigdelset(&set, SIGINT);

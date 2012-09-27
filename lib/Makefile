@@ -1,5 +1,5 @@
 
-LIB-OBJS := \
+CORE-LIB-OBJS := \
              syscall.o \
 			 string.o \
 			 determinism.o \
@@ -11,7 +11,20 @@ LIB-OBJS := \
 			 stdlib.o \
 			 syscalls.o
 
--include $(patsubst %.o,lib/.deps/%.d,$(LIB-OBJS))
+FS-LIB-OBJS := \
+		   fs.o
+
+LIB-OBJS := $(patsubst %.o,lib/%.o,$(CORE-LIB-OBJS)) \
+		$(patsubst %.o,lib/fs/%.o,$(FS-LIB-OBJS))
+
+-include $(patsubst %.o,lib/.deps/%.d,$(CORE-LIB-OBJS))
+-include $(patsubst %.o,lib/fs/.deps/%.d,$(FS-LIB-OBJS))
+
+lib/fs/%.o: lib/fs/%.c
+	@echo "CC [$<] > $@"
+	$(V)mkdir -p lib/fs/.deps
+	$(V)gcc -c $(CFLAGS) $< -o $@
+	$(V)gcc -MP -MT $@ -MM $(CFLAGS) $< > $(patsubst lib/fs/%.c,lib/fs/.deps/%.d,$<)
 
 lib/%.o: lib/%.c
 	@echo "CC [$<] > $@"
@@ -25,9 +38,9 @@ lib/%.o: lib/%.S
 	$(V)gcc -c $(CFLAGS) $< -o $@
 	$(V)gcc -MP -MT $@ -MM $(CFLAGS) $< > $(patsubst lib/%.S,lib/.deps/%.d,$<)
 
-lib/lib.a: $(patsubst %.o,lib/%.o, $(LIB-OBJS))
+lib/lib.a: $(LIB-OBJS)
 	@echo "AR [$@]"
-	$(V)ar rcs lib/lib.a $(patsubst %.o,lib/%.o, $(LIB-OBJS))
+	$(V)ar rcs lib/lib.a $(LIB-OBJS)
 
 clean-lib:
 	rm -rf lib/.deps lib/*.o lib/lib.a

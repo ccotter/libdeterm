@@ -1,6 +1,8 @@
 
 #include <string.h>
 #include <determinism.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include <debug.h>
 

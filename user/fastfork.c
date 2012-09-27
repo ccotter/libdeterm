@@ -1,4 +1,5 @@
 
+#include <stdlib.h>
 #include <determinism.h>
 #include <debug.h>
 #include <string.h>
