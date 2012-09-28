@@ -5,13 +5,6 @@
 #include <assert.h>
 #include <debug.h>
 
-static int dfork(pid_t id, unsigned long flags)
-{
-	struct user_regs_struct regs;
-	get_register_state(&regs);
-	return dput_regs(id, &regs, DET_START | flags);
-}
-
 unsigned char array[0x2000];
 unsigned char array_2[0x2000];
 static int fill(unsigned char *A, int len, int off)
@@ -30,30 +23,28 @@ static int check(unsigned char *A, int len, int off)
     }
     return 0;
 }
-static void child(int childid)
+static pid_t child(int count)
 {
-    if (!dfork(childid, 0)) {
-        dret(); /* Wait for parent to send us the FS. */
+	pid_t id = dfork(0);
+    if (!id) {
         char fname[100];
         int fd;
-        snprintf(fname, sizeof(fname), "/child_%d", childid);
+        snprintf(fname, sizeof(fname), "/child_%d", count);
         fd = dfs_open(fname, DFS_O_CREAT | DFS_O_WRONLY);
-        fill(array, sizeof(array), childid);
+        fill(array, sizeof(array), count);
         dfs_write(fd, array, sizeof(array));
         dfs_close(fd);
         dret();
     }
-
-	int rc = dfs_put(childid); /* Put FS into child. */
-    iprintf("put %d=%d\n",childid, rc);
-    dput(childid, DET_START, 0, 0, 0);
+	return id;
 }
 
-#define NCHILDREN 5
+#define NCHILDREN 50
 
 int main(void)
 {
     int i;
+	int ids[NCHILDREN];
 
     for (i = 0; i < NCHILDREN; ++i) {
         char fname[100];
@@ -62,8 +53,17 @@ int main(void)
         assert(0 <= (fd = dfs_open(fname, DFS_O_CREAT)));
         dfs_close(fd);
     }
+    /* Make sure nothing has been written to the files before we sync. */
     for (i = 0; i < NCHILDREN; ++i) {
-        child(i);
+        char fname[100];
+        int fd;
+        snprintf(fname, sizeof(fname), "/child_%d", i);
+        assert(0 <= (fd = dfs_open(fname, DFS_O_RDONLY)));
+        assert(0 == dfs_read(fd, array, sizeof(array)));
+        dfs_close(fd);
+    }
+    for (i = 0; i < NCHILDREN; ++i) {
+        ids[i] = child(i);
     }
 
     /* Make sure nothing has been written to the files before we sync. */
@@ -78,7 +78,7 @@ int main(void)
 
     /* Sync with all children. */
     for (i = 0; i < NCHILDREN; ++i) {
-        assert(!dfs_get(i));
+        assert(!dfs_get(ids[i]));
     }
 
     /* Now check each file. */

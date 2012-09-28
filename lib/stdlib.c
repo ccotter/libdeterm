@@ -10,6 +10,7 @@
 void __init(int argc, char **argv, char **envp);
 void __panic(const char *msg, ...);
 int __dfs_init_clean(void);
+void __dthread_init(void);
 
 #define __DET_MASTER 1
 #define __DET_DETERMINISTIC 2
@@ -44,6 +45,8 @@ void __init(int argc, char **argv, char **envp)
 	if (__dfs_init_clean())
 		__panic("Error initializing deterministic file system.");
 	__dfs_init = 1;
+
+	__dthread_init();
 
 }
 
