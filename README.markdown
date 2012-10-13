@@ -14,5 +14,6 @@ has a lot of test code/prototypes.
 ##Acknowledgements
 
 Some of the code in `inc/` and `lib` is derived from MIT's JOS operating system.
-I will do my best to document which files came from JOS.
+I will do my best to document which files came from JOS. See NOTICES for JOS's
+license.
 
