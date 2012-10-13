@@ -3,17 +3,18 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <stdio.h>
+#include <unistd.h>
 
 /**
  * Adopted the merge-sort algorithm and parallel variant from
  * "Introduction to Algorithms" 3rd edition, by Cormen, Lieseron, Rivest, Stein.
  *
- * The parallel merge-sort only spawns up to 2 ^ MAX_DEPTH threads to reduce
+ * The parallel merge-sort only spawns up to 2 ^ max_depth threads to reduce
  * the overhead of having too many threads doing little work.
  *
  */
 
-#define MAX_DEPTH 5
+static int max_depth;
 static void pmerge_sort(int *A, int p, int r, int depth);
 
 static void merge(int *A, int p, int q, int r)
@@ -69,7 +70,7 @@ static void pmerge_sort(int *A, int p, int r, int depth)
 {
 	if (p + 1 < r) {
 		int q = (p + r) / 2;
-		if (depth < MAX_DEPTH) {
+		if (depth < max_depth) {
 			pthread_t thread;
 			struct pmerge_data data;
 			data.A = A;
@@ -119,28 +120,44 @@ void read_array(int **A, int *len)
 
 static void usage(char **argv)
 {
-	fprintf(stderr, "Usage: %s <type\n  type: 's' for serial, 'p' for parallel\n",
-			argv[0]);
+	fprintf(stderr, "Usage: %s -t s|p -d max_depth\n", argv[0]);
+	fprintf(stderr, "  type: 's' for serial, 'p' for parallel\n");
 	exit(1);
 }
 
 int main(int argc, char **argv)
 {
-	char ch = argc == 2 ? argv[1][0] : '-';
-	if (ch != 'p' && ch != 's')
+	int c;
+	char type = -1;
+	max_depth = -1;
+	while ((c = getopt(argc, argv, "t:d:")) != -1) {
+		switch (c) {
+			case 't':
+				type = optarg[0];
+				if (type != 'p' && type != 's')
+					usage(argv);
+				break;
+			case 'd':
+				max_depth = strtol(optarg, NULL, 10);
+				break;
+			case '?':
+			default:
+				usage(argv);
+		}
+	}
+	if (type == -1 || max_depth == -1)
 		usage(argv);
 	int *A, len;
 	read_array(&A, &len);
-	if (ch == 's') {
+	if (type == 's') {
 		merge_sort(A, 0, len);
 	} else {
 		pmerge_sort(A, 0, len, 0);
 	}
-	if (is_sorted(A, len)) {
-		printf("SORTED\n");
-	} else {
+	/*if (!is_sorted(A, len)) {
 		printf("NOT SORTED\n");
-	}
+		return 1;
+	}*/
 	return 0;
 }
 

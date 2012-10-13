@@ -1,0 +1,7 @@
+
+Instructions and other notes for evaluations.
+
+Merge sort:
+./eval_merge.sh s > results/merge_serial 2>&1
+./eval_merge.sh p > results/merge_parallel 2>&1
+
