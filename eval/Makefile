@@ -1,7 +1,8 @@
 
 EVAL-OBJS := \
 			  qs.o \
-			  merge.o
+			  merge.o \
+			  bcrack.o
 
 EVAL-EXES := $(patsubst %.o,eval/exe/%, $(EVAL-OBJS))
 
