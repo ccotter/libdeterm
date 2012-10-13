@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <syscall.h>
 #include <stdio.h>
+#include <fs.h>
 
 /* Declare functions used internally by this library. */
 void __init(int argc, char **argv, char **envp);
@@ -46,6 +47,7 @@ void __init(int argc, char **argv, char **envp)
 		__panic("Error initializing deterministic file system.");
 	__dfs_init = 1;
 
+	dfs_setstate(DPROC_READY);
 	__dthread_init();
 
 }
@@ -83,5 +85,69 @@ void __panic(const char *msg, ...)
 	write(2, "\n", 1);
 	va_end(ap);
 	exit(-1);
+}
+
+#define PRINT_BUFFER_SIZE 512
+struct printbuf
+{
+	char buf[PRINT_BUFFER_SIZE];
+	int idx;
+};
+static struct printbuf pb;
+static void putch_printf(int ch, void *data)
+{
+	pb.buf[pb.idx] = (char)ch;
+	++pb.idx;
+	++*(int*)data;
+	if (PRINT_BUFFER_SIZE - 1 == pb.idx) {
+		dfs_write(1, pb.buf, PRINT_BUFFER_SIZE - 1);
+		pb.idx = 0;
+	}
+}
+
+void flush_printf_buffer(void)
+{
+	dfs_write(1, pb.buf, pb.idx);
+	pb.idx = 0;
+}
+
+int printf(const char *fmt, ...)
+{
+	int count;
+	va_list ap;
+	va_start(ap, fmt);
+	vprintfmt(putch_printf, &count, fmt, ap);
+	va_end(ap);
+	return 0;
+}
+
+int io_sync(int needinput)
+{
+	long off = dfs_tell(0);
+	if (needinput)
+		dfs_setstate(DPROC_INPUT);
+	flush_printf_buffer();
+	dret();
+	dfs_seek(0, off, DSEEK_SET);
+	dfs_setstate(DPROC_READY);
+	return 0;
+}
+
+int getchar(void)
+{
+	int n;
+	char c;
+begin:
+	n = dfs_read(0, &c, 1);
+	if (!n) {
+		io_sync(1);
+		n = dfs_read(0, &c, 1);
+	}
+	if (1 == n)
+		return (int)c;
+	else if (n < 0)
+		return EOF;
+	else
+		return EOF;
 }
 

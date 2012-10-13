@@ -3,4 +3,5 @@ root/
 *.o
 .deps
 user/exe
+eval/exe
 *.a

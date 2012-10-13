@@ -1341,7 +1341,6 @@ int dfs_seek(int fd, long offset, int whence)
 
 void dfs_setstate(int state)
 {
-	int i;
 	fs_state->proc_state = state;
 }
 

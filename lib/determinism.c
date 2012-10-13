@@ -3,6 +3,7 @@
 #include <syscall.h>
 #include <unistd.h>
 #include <fs.h>
+#include <stdlib.h>
 
 long dput(pid_t childid, long flags, unsigned long start, size_t size,
 		unsigned long dststart)
@@ -65,6 +66,11 @@ static inline int __get_avail_pid(void)
 	return -ENOMEM;
 }
 
+static inline void __put_pid(pid_t pid)
+{
+	__threads[pid].used = 0;
+}
+
 /* Returns -ENOMEM when no there are no available threads.
  * Otherwise, returns the allocated thread process id. */
 pid_t dfork(unsigned long flags)
@@ -85,6 +91,41 @@ pid_t dfork(unsigned long flags)
 		return avail;
 	} else {
 		return 0;
+	}
+}
+
+int dwait(pid_t pid)
+{
+	int state;
+	for (;;) {
+		int out_fd;
+		state = dfs_childstate(pid);
+		if (state < 0)
+			return -1;
+		if (dfs_get(pid))
+			return -1;
+		io_sync(0);
+		if ((DPROC_EXITED | DPROC_FAULTED) & state)
+			break;
+		if (DPROC_INPUT & state)
+			io_sync(1);
+		if (!dfs_put(pid))
+			return -1;
+		dput(pid, DET_START, 0, 0, 0);
+	}
+	dput(pid, DET_KILL, 0, 0, 0);
+	__put_pid(pid);
+	return state;
+}
+
+pid_t dfork_fn(void *(fn)(void*), void *arg)
+{
+	pid_t rc = dfork(DET_START);
+	if (!rc) {
+		fn(arg);
+		return 0;
+	} else {
+		return rc;
 	}
 }
 

@@ -63,6 +63,8 @@ int	vsprintf(char *str, const char *fmt, va_list args);
 int	snprintf(char *str, int size, const char *fmt, ...);
 int	vsnprintf(char *str, int size, const char *fmt, va_list args);
 
+int printf(const char *fmt, ...);
+
 #if 0
 /* lib/scanfmt.c */
 int	vscanfmt(int (*lookch)(int action, void *scandat), void *scandat,

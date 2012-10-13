@@ -6,6 +6,7 @@ USER-OBJS := \
 			  test.o \
 			  merge.o \
 			  fs_test.o \
+			  pqsort.o \
 			  regress.o \
 			  zero.o \
 			  grand.o \

@@ -1,6 +1,6 @@
 
 ALL-TARGETS :=
-DET-TARGETS := lib user
+DET-TARGETS := lib user eval
 
 # Help menu.
 help:
@@ -8,6 +8,7 @@ help:
 	@echo "  all: Build all targets."
 	@echo "  lib: Build user library."
 	@echo "  user: Build executables under user/."
+	@echo "  eval: Build eval programs (nondeterministic)."
 
 include $(patsubst %,%/Makefile,$(DET-TARGETS))
 
