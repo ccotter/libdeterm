@@ -9,7 +9,9 @@ CORE-LIB-OBJS := \
 			 sprintf.o \
 			 entry.o \
 			 stdlib.o \
-			 syscalls.o
+			 syscalls.o \
+			 mman.o \
+			 bench.o
 
 FS-LIB-OBJS := \
 		   fs.o

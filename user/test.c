@@ -2,7 +2,7 @@
 #include <determinism.h>
 #include <debug.h>
 #include <string.h>
-#include <mman.h>
+#include <sys/mman.h>
 #include <syscall.h>
 #include <stdlib.h>
 

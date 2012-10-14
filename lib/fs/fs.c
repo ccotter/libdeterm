@@ -1,7 +1,7 @@
 
 #include <fs_internal.h>
 #include <string.h>
-#include <mman.h>
+#include <sys/mman.h>
 #include <debug.h>
 
 #define FS_FIRST_DATA_BLOCK (2 + FS_BITMAP_BLOCKS + (FS_NINODES * FS_INODE_SIZE + FS_BLOCK_SIZE - 1) / FS_BLOCK_SIZE)

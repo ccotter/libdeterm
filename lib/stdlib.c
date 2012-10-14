@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <fs.h>
 
+static struct printbuf pb, master_pb;
+static void flush_printf_buffer(struct printbuf *pb);
+
 /* Declare functions used internally by this library. */
 void __init(int argc, char **argv, char **envp);
 void __panic(const char *msg, ...);
@@ -70,6 +73,8 @@ void exit(int status)
 		dret();
 		while(1) dret();
 	} else {
+		/* Flush buffers. */
+		flush_printf_buffer(&master_pb);
 		syscall1(__NR_exit, (long)status);
 		while(1);
 	}
@@ -93,7 +98,6 @@ struct printbuf
 	char buf[PRINT_BUFFER_SIZE];
 	int idx;
 };
-static struct printbuf pb;
 static void putch_printf(int ch, void *data)
 {
 	pb.buf[pb.idx] = (char)ch;
@@ -105,10 +109,23 @@ static void putch_printf(int ch, void *data)
 	}
 }
 
-void flush_printf_buffer(void)
+static void putch_master_printf(int ch, void *data)
 {
-	dfs_write(1, pb.buf, pb.idx);
-	pb.idx = 0;
+	master_pb.buf[master_pb.idx] = (char)ch;
+	++master_pb.idx;
+	++*(int*)data;
+	if (PRINT_BUFFER_SIZE - 1 == master_pb.idx)
+		flush_printf_buffer(&master_pb);
+}
+
+static void flush_printf_buffer(struct printbuf *pb)
+{
+	if (__DET_MASTER == __det_status) {
+		write(1, pb->buf, pb->idx);
+	}
+	else
+		dfs_write(1, pb->buf, pb->idx);
+	pb->idx = 0;
 }
 
 int printf(const char *fmt, ...)
@@ -116,7 +133,14 @@ int printf(const char *fmt, ...)
 	int count;
 	va_list ap;
 	va_start(ap, fmt);
-	vprintfmt(putch_printf, &count, fmt, ap);
+
+	if (__det_status == __DET_MASTER) {
+		vprintfmt(putch_master_printf, &count, fmt, ap);
+		flush_printf_buffer(&master_pb);
+	} else {
+		vprintfmt(putch_printf, &count, fmt, ap);
+	}
+
 	va_end(ap);
 	return 0;
 }
@@ -126,7 +150,7 @@ int io_sync(int needinput)
 	long off = dfs_tell(0);
 	if (needinput)
 		dfs_setstate(DPROC_INPUT);
-	flush_printf_buffer();
+	flush_printf_buffer(&pb);
 	dret();
 	dfs_seek(0, off, DSEEK_SET);
 	dfs_setstate(DPROC_READY);

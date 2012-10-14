@@ -3,7 +3,7 @@
 #include <debug.h>
 #include <stdlib.h>
 #include <string.h>
-#include <mman.h>
+#include <sys/mman.h>
 
 #define die(x) do { iprintf("error at line %d: %d\n", __LINE__, x), exit(x); } while(0)
 #define tassert(x) do { if (!(x)) { iprintf("ooops %d\n", __LINE__); asm("hlt"); }} while (0)

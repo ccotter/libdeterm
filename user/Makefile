@@ -6,13 +6,13 @@ USER-OBJS := \
 			  test.o \
 			  merge.o \
 			  fs_test.o \
-			  pqsort.o \
 			  regress.o \
 			  zero.o \
 			  grand.o \
 			  regs.o \
 			  copy.o \
-			  fastfork.o
+			  fastfork.o \
+			  bcrack.o
 
 USER-EXES := $(patsubst %.o,user/exe/%, $(USER-OBJS))
 

@@ -1,4 +1,6 @@
 
+#include <debug.h>
+
 // Brute-force MD5-based "password cracker":
 // exhaustively searches for a short ASCII string
 // whose MD5 hash yields a given hash output.
@@ -9,7 +11,7 @@
  * Original program by Bryan Ford <bryan.ford@yale.edu>.
  * Written for Determinator: https://github.com/bford/Determinator
  *
- * This version of the md5 cracker uses nondeterministic pthreads.
+ * This version of the md5 cracker uses deterministic Linux.
  */
 
 #include <stdio.h>
@@ -17,8 +19,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
-#include <stdint.h>
-#include <pthread.h>
+#include <limits.h>
+#include <bench.h>
 
 #include "md5.c"	// Bad practice, but hey, it's easy...
 
@@ -33,26 +35,16 @@
 			 (c) >= 'a' && (c) <= 'f' ? (c) - 'a' + 10 : \
 			 (c) >= 'A' && (c) <= 'F' ? (c) - 'A' + 10 : -1)
 
-static void bench_fork(pthread_t *p, void *(*fn)(void*), void *arg)
-{
-	pthread_create(p, NULL, fn, arg);
-}
-
-static void bench_join(pthread_t *p)
-{
-	pthread_join(*p, NULL);
-}
-
 int nthreads;
 
 int found;
 char out[MAXLEN+1];
 
-
 void
 usage()
 {
-	fprintf(stderr, "Usage: pwcrack <nthreads> <md5-hash>\n");
+	printf("Usage: pwcrack <nthreads> <md5-hash>\n");
+	//fprintf(stderr, "Usage: pwcrack <nthreads> <md5-hash>\n");
 	exit(1);
 }
 
@@ -118,20 +110,19 @@ int psearch(uint8_t *str, int len, const unsigned char *hash)
 	int done = 0;
 	do {
 		int i;
-		pthread_t *pthreads = malloc(sizeof(pthread_t) * nthreads);
 		search_args a[nthreads];
 		for (i = 0; i < nthreads; i++) {
 			strcpy((char*)a[i].str, (char*)str);
-			printf("forking child to check '%s'\n", str);
+			iprintf("forking child to check '%s'\n", str);
 			a[i].len = len;
 			a[i].lo = 0;
 			a[i].hi = BLOCKLEN;
 			a[i].hash = hash;
-			bench_fork(&pthreads[i], search, &a[i]);
+			bench_fork(i, search, &a[i]);
 			done |= incstr(str, BLOCKLEN, len);
 		}
 		for (i = 0; i < nthreads; i++)
-			bench_join(&pthreads[i]);	// collect results
+			bench_join(i);	// collect results
 		if (found)
 			return 1;
 	} while (!done);
@@ -141,7 +132,8 @@ int psearch(uint8_t *str, int len, const unsigned char *hash)
 int
 main(int argc, char **argv)
 {
-	if (argc != 3 || (nthreads = atoi(argv[1])) <= 0
+	printf("%d\n", argc);
+	if (argc != 3 || (nthreads = strtol(argv[1], NULL, 10)) <= 0
 			|| strlen(argv[2]) != 16*2)
 		usage();
 	assert(nthreads > 0);

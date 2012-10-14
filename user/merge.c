@@ -1,7 +1,7 @@
 
 #include <assert.h>
 #include <debug.h>
-#include <mman.h>
+#include <sys/mman.h>
 #include <determinism.h>
 #include <stdlib.h>
 
