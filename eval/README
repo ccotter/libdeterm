@@ -1,7 +1,12 @@
 
 Instructions and other notes for evaluations.
 
-Merge sort:
+Merge sort.
+Run eval/tools/gen_merge_files to create files with random arrays to sort. These
+files go into eval/tmp. eval_merge.sh does the rest.
 ./eval_merge.sh s > results/merge_serial 2>&1
 ./eval_merge.sh p > results/merge_parallel 2>&1
+
+MD5 brute force password cracker:
+
 

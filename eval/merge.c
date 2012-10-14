@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 /**
  * Adopted the merge-sort algorithm and parallel variant from
@@ -118,9 +119,22 @@ void read_array(int **A, int *len)
 	*A = ar;
 }
 
+void read_file_array(const char *fname, int **A, int *len)
+{
+	FILE *f = fopen(fname, "r");
+	int *ar, i;
+	fscanf(f, "%d", len);
+	ar = malloc(sizeof(int) * *len);
+	for (i = 0; i < *len; ++i) {
+		fscanf(f, "%d", &ar[i]);
+	}
+	*A = ar;
+	fclose(f);
+}
+
 static void usage(char **argv)
 {
-	fprintf(stderr, "Usage: %s -t s|p -d max_depth\n", argv[0]);
+	fprintf(stderr, "Usage: %s -t s|p -d max_depth [-f fname] \n", argv[0]);
 	fprintf(stderr, "  type: 's' for serial, 'p' for parallel\n");
 	exit(1);
 }
@@ -130,7 +144,9 @@ int main(int argc, char **argv)
 	int c;
 	char type = -1;
 	max_depth = -1;
-	while ((c = getopt(argc, argv, "t:d:")) != -1) {
+	char fname[100];
+	fname[0] = 0;
+	while ((c = getopt(argc, argv, "t:d:f:")) != -1) {
 		switch (c) {
 			case 't':
 				type = optarg[0];
@@ -140,6 +156,9 @@ int main(int argc, char **argv)
 			case 'd':
 				max_depth = strtol(optarg, NULL, 10);
 				break;
+			case 'f':
+				strcpy(fname, optarg);
+				break;
 			case '?':
 			default:
 				usage(argv);
@@ -148,7 +167,13 @@ int main(int argc, char **argv)
 	if (type == -1 || max_depth == -1)
 		usage(argv);
 	int *A, len;
-	read_array(&A, &len);
+
+	if (strlen(fname)) {
+		read_file_array(fname, &A, &len);
+	} else {
+		read_array(&A, &len);
+	}
+
 	if (type == 's') {
 		merge_sort(A, 0, len);
 	} else {
