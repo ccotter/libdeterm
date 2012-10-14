@@ -4,6 +4,5 @@ root/
 .deps
 user/exe
 eval/exe
-eval/results
 eval/tmp
 *.a

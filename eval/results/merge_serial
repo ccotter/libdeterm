@@ -1,0 +1,35 @@
+time exe/merge -d 5 -t s -f tmp/merge_100
+real	0m0.002s
+user	0m0.003s
+sys	0m0.000s
+
+time exe/merge -d 5 -t s -f tmp/merge_1000
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+
+time exe/merge -d 5 -t s -f tmp/merge_10000
+real	0m0.008s
+user	0m0.007s
+sys	0m0.000s
+
+time exe/merge -d 5 -t s -f tmp/merge_100000
+real	0m0.075s
+user	0m0.063s
+sys	0m0.010s
+
+time exe/merge -d 5 -t s -f tmp/merge_1000000
+real	0m0.787s
+user	0m0.770s
+sys	0m0.017s
+
+time exe/merge -d 5 -t s -f tmp/merge_10000000
+real	0m8.515s
+user	0m8.356s
+sys	0m0.157s
+
+time exe/merge -d 5 -t s -f tmp/merge_50000000
+real	0m44.912s
+user	0m44.327s
+sys	0m0.577s
+

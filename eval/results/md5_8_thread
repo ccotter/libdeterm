@@ -1,0 +1,100 @@
+time exe/bcrack 8 cad783791b11eba0d9ffe19930658e58
+Searching strings of length 1
+Searching strings of length 2
+Match: 'g_'
+
+real	0m0.008s
+user	0m0.007s
+sys	0m0.003s
+
+time exe/bcrack 8 001cf4576062cc35bbdae2b0f81d1dce
+Searching strings of length 1
+Searching strings of length 2
+Match: 'T8'
+
+real	0m0.004s
+user	0m0.003s
+sys	0m0.000s
+
+time exe/bcrack 8 f38f5bf94ee2de0b42d1829fbf66ea9c
+Searching strings of length 1
+Searching strings of length 2
+Match: 'e6'
+
+real	0m0.004s
+user	0m0.000s
+sys	0m0.003s
+
+time exe/bcrack 8 f31f7630a3c28bb51cdb4b1a0013b676
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Match: '38x'
+
+real	0m0.821s
+user	0m0.820s
+sys	0m0.000s
+
+time exe/bcrack 8 f1f121566990f0afd8af2381b7362fbe
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Match: ']9y'
+
+real	0m0.826s
+user	0m0.823s
+sys	0m0.003s
+
+time exe/bcrack 8 8c49f85d3b9fbf3766d875741ce32f6b
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Match: 'j;t'
+
+real	0m0.784s
+user	0m0.783s
+sys	0m0.000s
+
+time exe/bcrack 8 bb95b8cfe83407bb85b4e5ec30500810
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Match: '6xx'
+
+real	0m0.826s
+user	0m0.820s
+sys	0m0.003s
+
+time exe/bcrack 8 38f1eebefea62e6affc37d97202df948
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Searching strings of length 4
+Match: '*`Vg'
+
+real	0m11.683s
+user	1m22.198s
+sys	0m0.020s
+
+time exe/bcrack 8 6e4eb59d8f151da5ce10866c35f433ab
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Searching strings of length 4
+Match: 'Q=f5'
+
+real	0m4.725s
+user	0m28.505s
+sys	0m0.013s
+
+time exe/bcrack 8 86f21f30b32ab591e804add38f82d7b8
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Searching strings of length 4
+Match: 'I}_s'
+
+real	0m14.218s
+user	1m41.113s
+sys	0m0.003s
+
