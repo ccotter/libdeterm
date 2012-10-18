@@ -79,10 +79,11 @@ search(void *args)
 	assert(a->lo < a->hi);
 	assert(a->hi <= a->len);
 
-	//cprintf("searching strings starting from '%s'\n", a->str);
+	//iprintf("searching strings starting from '%s'\n", a->str);
 	do {
 		unsigned char h[16];
-		//cprintf("checking '%s'\n", a->str);
+		if (a->str[2] == 'V' && a->str[1] == '`' && a->str[3] == 'g')
+			iprintf("checking '%s'\n", a->str);
 		MD5_CTX ctx;
 		MD5Init(&ctx);
 		MD5Update(&ctx, a->str, a->len);
@@ -113,7 +114,7 @@ int psearch(uint8_t *str, int len, const unsigned char *hash)
 		search_args a[nthreads];
 		for (i = 0; i < nthreads; i++) {
 			strcpy((char*)a[i].str, (char*)str);
-			iprintf("forking child to check '%s'\n", str);
+			//iprintf("forking child to check '%s'\n", str);
 			a[i].len = len;
 			a[i].lo = 0;
 			a[i].hi = BLOCKLEN;

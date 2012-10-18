@@ -165,7 +165,7 @@ int main(int argc, char **argv)
     int i;
     unsigned char *ba = (void*)0x30000000;
     int rc;
-    become_deterministic();
+	goto ok;
 
     x = y = 0;
     if (!(rc=dput(0, DET_START | DET_SNAP,0,0,0)))
@@ -184,7 +184,10 @@ int main(int argc, char **argv)
     assert(0xdeadbeef == x); assert(0xabadcafe == y);
     dput(0, DET_KILL, 0, 0, 0);
     dput(1, DET_KILL, 0, 0, 0);
+ok:
 
+	x=0xdeadbeef;
+	y=0xabadcafe;
     if (!dput(0, DET_START | DET_SNAP,0,0,0)) { x = y; dret(); }
     if (!dput(1, DET_START | DET_SNAP,0,0,0)) { y = x; dret(); }
     assert(0xdeadbeef == x); assert(0xabadcafe == y);
