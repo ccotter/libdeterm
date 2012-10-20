@@ -96,7 +96,7 @@ int iprintf(const char *fmt, ...)
 int ivprintf(const char *fmt, va_list ap)
 {
 	int ret;
-    static char buffer[4096];
+    char buffer[4096];
     ret = vsnprintf(buffer, sizeof(buffer), fmt, ap);
 	write(1, buffer, ret);
 	return ret;

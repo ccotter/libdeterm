@@ -1,0 +1,81 @@
+time ../user/exe/bcrack 8 cad783791b11eba0d9ffe19930658e58
+3
+Searching strings of length 1
+Searching strings of length 2
+Match: 'g_'
+
+real	0m0.015s
+user	0m0.010s
+sys	0m0.003s
+
+time ../user/exe/bcrack 8 001cf4576062cc35bbdae2b0f81d1dce
+3
+Searching strings of length 1
+Searching strings of length 2
+Match: 'T8'
+
+real	0m0.011s
+user	0m0.003s
+sys	0m0.007s
+
+time ../user/exe/bcrack 8 f38f5bf94ee2de0b42d1829fbf66ea9c
+3
+Searching strings of length 1
+Searching strings of length 2
+Match: 'e6'
+
+real	0m0.010s
+user	0m0.003s
+sys	0m0.007s
+
+time ../user/exe/bcrack 8 f31f7630a3c28bb51cdb4b1a0013b676
+3
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Match: '38x'
+
+real	0m1.006s
+user	0m0.997s
+sys	0m0.007s
+
+time ../user/exe/bcrack 8 f1f121566990f0afd8af2381b7362fbe
+3
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Match: ']9y'
+
+real	0m1.009s
+user	0m1.000s
+sys	0m0.007s
+
+time ../user/exe/bcrack 8 8c49f85d3b9fbf3766d875741ce32f6b
+3
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Match: 'j;t'
+
+real	0m0.954s
+user	0m0.947s
+sys	0m0.007s
+
+time ../user/exe/bcrack 8 bb95b8cfe83407bb85b4e5ec30500810
+3
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Match: '6xx'
+
+real	0m1.013s
+user	0m1.007s
+sys	0m0.007s
+
+time ../user/exe/bcrack 8 38f1eebefea62e6affc37d97202df948
+3
+Searching strings of length 1
+Searching strings of length 2
+Searching strings of length 3
+Searching strings of length 4
+Searching strings of length 5

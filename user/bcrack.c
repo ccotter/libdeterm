@@ -82,7 +82,7 @@ search(void *args)
 	//iprintf("searching strings starting from '%s'\n", a->str);
 	do {
 		unsigned char h[16];
-		if (a->str[2] == 'V' && a->str[1] == '`' && a->str[3] == 'g')
+		if (a->str[2] == 'V' && a->str[1] == '`' && a->str[3] == 'g' && a->str[0] == '*')
 			iprintf("checking '%s'\n", a->str);
 		MD5_CTX ctx;
 		MD5Init(&ctx);
@@ -90,6 +90,7 @@ search(void *args)
 		MD5Final(h, &ctx);
 		if (memcmp(h, a->hash, 16) == 0) {
 			strcpy(out, (char*)a->str);
+			iprintf("and good to go\n");
 			found = 1;
 			return NULL;
 		}
@@ -114,7 +115,6 @@ int psearch(uint8_t *str, int len, const unsigned char *hash)
 		search_args a[nthreads];
 		for (i = 0; i < nthreads; i++) {
 			strcpy((char*)a[i].str, (char*)str);
-			//iprintf("forking child to check '%s'\n", str);
 			a[i].len = len;
 			a[i].lo = 0;
 			a[i].hi = BLOCKLEN;
@@ -133,7 +133,6 @@ int psearch(uint8_t *str, int len, const unsigned char *hash)
 int
 main(int argc, char **argv)
 {
-	printf("%d\n", argc);
 	if (argc != 3 || (nthreads = strtol(argv[1], NULL, 10)) <= 0
 			|| strlen(argv[2]) != 16*2)
 		usage();

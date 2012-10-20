@@ -14,12 +14,11 @@ void bench_fork(pid_t pid, void *(*fn)(void*), void *arg)
 		fn(arg);
 		dret();
 	}
-	iprintf("dput(%d): %d\n", pid, rc);
 }
 
 void bench_join(pid_t pid)
 {
-	iprintf("dget(%d)=%d\n",pid, dget(pid, DET_MERGE, 0x40000000, 0xc0000000, 0));
+	dget(pid, DET_MERGE, 0x00607000, 0x20000000-0x00607000, 0);
 	dput(pid, DET_KILL, 0, 0, 0);
 }
 

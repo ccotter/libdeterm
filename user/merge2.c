@@ -94,6 +94,7 @@ pqsort(int *lo, int *hi)
 		dret();
 	}
 	rc = dget(0, DET_MERGE, (unsigned long)randints, sizeof(randints), 0);
+	iprintf("rc=%d\n",rc);
 	assert(0 < rc);
     rc = dget(1, DET_MERGE, (unsigned long)randints, sizeof(randints), 0);
 	assert(0 < rc);

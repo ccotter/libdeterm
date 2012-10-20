@@ -13,17 +13,16 @@
 
 unsigned long x, y;
 
-#define SORT_SIZE 8
-/*int randints[16] = {	// some random ints
+#define SORT_SIZE 16
+int randints[16] = {	// some random ints
     20,726,926,682,210,585,829,491,612,744,753,405,346,189,669,416};
 const int sortints[16] = {	// sorted array of the same ints
     20,189,210,346,405,416,491,585,612,669,682,726,744,753,829,926};
-    */
-/**/
+/*
 int randints[8] = {	// some random ints
     20,726,926,682,210,585,829,491};
 const int sortints[8] = {	// sorted array of the same ints
-    20,210,491,585,682,726,829,926};
+    20,210,491,585,682,726,829,926};*/
 /*
 int randints[4] = {	// some random ints
     20,726,926,682};
@@ -165,7 +164,7 @@ int main(int argc, char **argv)
     int i;
     unsigned char *ba = (void*)0x30000000;
     int rc;
-	goto ok;
+	while(1);
 
     x = y = 0;
     if (!(rc=dput(0, DET_START | DET_SNAP,0,0,0)))
@@ -184,7 +183,6 @@ int main(int argc, char **argv)
     assert(0xdeadbeef == x); assert(0xabadcafe == y);
     dput(0, DET_KILL, 0, 0, 0);
     dput(1, DET_KILL, 0, 0, 0);
-ok:
 
 	x=0xdeadbeef;
 	y=0xabadcafe;
