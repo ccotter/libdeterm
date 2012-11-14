@@ -8,6 +8,7 @@ USER-OBJS := \
 			  fs_test.o \
 			  regress.o \
 			  merge2.o \
+			  matmult.o \
 			  zero.o \
 			  grand.o \
 			  regs.o \

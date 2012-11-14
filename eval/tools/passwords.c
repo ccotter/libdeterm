@@ -26,6 +26,8 @@ int main(void)
 	gen(4, password); printf("%s\n", password);
 	gen(4, password); printf("%s\n", password);
 	gen(4, password); printf("%s\n", password);
+	gen(5, password); printf("%s\n", password);
+	gen(5, password); printf("%s\n", password);
 	return 0;
 }
 

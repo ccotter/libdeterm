@@ -11,7 +11,8 @@ CORE-LIB-OBJS := \
 			 stdlib.o \
 			 syscalls.o \
 			 mman.o \
-			 bench.o
+			 bench.o \
+			 time.o
 
 FS-LIB-OBJS := \
 		   fs.o

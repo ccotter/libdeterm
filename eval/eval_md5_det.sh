@@ -21,7 +21,9 @@ PASSWORDS="\
 	6xx \
 	*\`Vg \
 	Q=f5 \
-	I}_s"
+	I}_s \
+	_a_tD \
+	eec@!"
 
 EXE=../user/exe/bcrack
 NTHREADS=$1

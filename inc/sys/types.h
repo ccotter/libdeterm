@@ -19,8 +19,8 @@
  * Aug 2012.
  */
 
-#ifndef _INC_TYPES_H_
-#define _INC_TYPES_H_
+#ifndef _INC_SYS_TYPES_H_
+#define _INC_SYS_TYPES_H_
 
 #ifndef NULL
 #define NULL ((void*) 0)
@@ -84,9 +84,8 @@ typedef int            off_t;        /* file offsets and lengths */
 typedef int            pid_t;        /* process IDs */
 typedef int            ino_t;        /* file inode numbers */
 typedef int            mode_t;       /* file mode flags */
-#if 0
-#if LAB >= 9
 
+#if 0
 /* Types not needed in PIOS, only by legacy applications */
 typedef int            uid_t;
 typedef int            gid_t;
@@ -94,11 +93,10 @@ typedef int            dev_t;
 typedef int            nlink_t;
 typedef int            blksize_t;
 typedef int            blkcnt_t;
+#endif
 
 typedef int64_t            time_t;
 typedef int32_t            suseconds_t;
-#endif
-#endif
 
 /* Efficient min and max operations */
 #define MIN(_a, _b)                        \
@@ -177,5 +175,5 @@ typedef int32_t            suseconds_t;
 #define _STDINT_H
 #define _PTRDIFF_T
 
-#endif /* !_INC_TYPES_H_ */
+#endif /* !_INC_SYS_TYPES_H_ */
 

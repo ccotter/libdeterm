@@ -8,6 +8,7 @@
 #define __NR_munmap 11
 #define __NR_fork 57
 #define __NR_exit 60
+#define __NR_gettimeofday 96
 #define __NR_dput 309
 #define __NR_dget 310
 #define __NR_dret 311

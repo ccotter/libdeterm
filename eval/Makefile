@@ -2,7 +2,8 @@
 EVAL-OBJS := \
 			  qs.o \
 			  merge.o \
-			  bcrack.o
+			  bcrack.o \
+			  matmult.o
 
 EVAL-EXES := $(patsubst %.o,eval/exe/%, $(EVAL-OBJS))
 

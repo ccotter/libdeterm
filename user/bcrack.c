@@ -79,18 +79,14 @@ search(void *args)
 	assert(a->lo < a->hi);
 	assert(a->hi <= a->len);
 
-	//iprintf("searching strings starting from '%s'\n", a->str);
 	do {
 		unsigned char h[16];
-		if (a->str[2] == 'V' && a->str[1] == '`' && a->str[3] == 'g' && a->str[0] == '*')
-			iprintf("checking '%s'\n", a->str);
 		MD5_CTX ctx;
 		MD5Init(&ctx);
 		MD5Update(&ctx, a->str, a->len);
 		MD5Final(h, &ctx);
 		if (memcmp(h, a->hash, 16) == 0) {
 			strcpy(out, (char*)a->str);
-			iprintf("and good to go\n");
 			found = 1;
 			return NULL;
 		}

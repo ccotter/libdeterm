@@ -3,8 +3,8 @@
  *
  * As yet incomplete. */
 
-#ifndef _SYS_USER_H
-#define _SYS_USER_H
+#ifndef _INC_SYS_USER_H
+#define _INC_SYS_USER_H
 
 #ifdef __i386__
 
@@ -45,5 +45,5 @@ struct user_regs_struct
 
 #endif
 
-#endif /* _SYS_USER_H */
+#endif /* _INC_SYS_USER_H */
 
