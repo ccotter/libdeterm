@@ -2,6 +2,7 @@
 #ifndef _BENCH_H_
 #define _BENCH_H_
 
+#include <stdint.h>
 #include <sys/time.h>
 
 /*

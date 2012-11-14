@@ -1,4 +1,9 @@
 
+/*
+ * Adapted from PIOS for use in libdeterm by Chris Cotter.
+ * Aug 2012.
+ */
+
 #ifndef _INC_STDINT_H_
 #define _INC_STDINT_H_
 

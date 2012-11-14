@@ -2,7 +2,10 @@
 #ifndef _INC_ASM_UNISTD_64_H
 #define _INC_ASM_UNISTD_64_H
 
+#define __NR_read 0
 #define __NR_write 1
+#define __NR_open 2
+#define __NR_close 3
 #define __NR_open 2
 #define __NR_mmap 9
 #define __NR_munmap 11

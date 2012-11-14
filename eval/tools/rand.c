@@ -3,23 +3,25 @@
 #include <time.h>
 #include <stdio.h>
 
-static void usage(char **argv)
-{
-    fprintf(stderr, "Usage: %s <n>\n", argv[0]);
-    exit(1);
-}
+//static int sizes[] = {10000, 10000, 10000, 10000, 10000, 10000, 10000};
+static int sizes[] = {100, 1000, 10000, 100000, 1000000, 10000000, 50000000};
 
 int main(int argc, char **argv)
 {
-    if (argc != 2)
-        usage(argv);
-    int N = strtol(argv[1], NULL, 10);
     srand(time(NULL));
     int i;
-    printf("%d ", N);
-    for (i = 0; i < N; ++i) {
-        printf("%d \n", rand() % 1000000);
-    }
+	for (i = 0; i < sizeof(sizes) / sizeof(sizes[0]); ++i) {
+		int j;
+		printf("int len%d = %d;\n", i+1, sizes[i]);
+		printf("int array%d[] = {\n", i+1);
+		for (j = 0; j < sizes[i]-1; ++j) {
+			printf("%d, ", rand() % 1000000);
+			if (0 == j % 100)
+				printf("\n");
+		}
+		printf("%d", rand() % 1000000);
+		printf("};\n\n");
+	}
     return 0;
 }
 

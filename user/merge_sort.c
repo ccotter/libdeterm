@@ -1,15 +1,14 @@
 
-#include <pthread.h>
+#include <bench.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include "bench.h"
 
 /* The following is an auto generated file that contains 8
  * arrays to sort. */
-#include "merge_sort_arrays.h"
+#include "../eval/merge_sort_arrays2.h"
 
 /**
  * Adopted the merge-sort algorithm and parallel variant from
@@ -80,20 +79,21 @@ static void *pmerge_trampoline(void *_data)
 	return NULL;
 }
 
+int childid = 0;
 static void pmerge_sort(int *A, int p, int r, int depth)
 {
 	if (p + 1 < r) {
 		int q = (p + r) / 2;
 		if (depth < max_depth) {
-			pthread_t thread;
 			struct pmerge_data data;
 			data.A = A;
 			data.p = p;
 			data.r = q;
 			data.depth = depth + 1;
-			pthread_create(&thread, NULL, pmerge_trampoline, &data);
+			++childid;
+			bench_fork(childid, pmerge_trampoline, &data);
 			pmerge_sort(A, q, r, depth + 1);
-			pthread_join(thread, NULL);
+			bench_join(childid);
 		} else {
 			merge_sort(A, p, q);
 			merge_sort(A, q, r);
@@ -134,8 +134,8 @@ void read_array(int **A, int *len)
 
 static void usage(char **argv)
 {
-	fprintf(stderr, "Usage: %s -t s|p -d max_depth \n", argv[0]);
-	fprintf(stderr, "  type: 's' for serial, 'p' for parallel\n");
+	printf("Usage: %s -t s|p -d max_depth \n", argv[0]);
+	printf("  type: 's' for serial, 'p' for parallel\n");
 	exit(1);
 }
 

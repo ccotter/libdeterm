@@ -9,6 +9,7 @@ USER-OBJS := \
 			  regress.o \
 			  merge2.o \
 			  matmult.o \
+			  merge_sort.o \
 			  zero.o \
 			  grand.o \
 			  regs.o \

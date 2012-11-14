@@ -12,7 +12,9 @@ CORE-LIB-OBJS := \
 			 syscalls.o \
 			 mman.o \
 			 bench.o \
-			 time.o
+			 time.o \
+			 getopt.o \
+			 scanfmt.o
 
 FS-LIB-OBJS := \
 		   fs.o

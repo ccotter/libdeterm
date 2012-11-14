@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <bench.h>
 
-#include "bench.h"
-
 #define MINDIM		16
 #define MAXDIM		1024
 #define MAXTHREADS	16

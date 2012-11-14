@@ -14,6 +14,11 @@
  * Adapted for PIOS by Bryan Ford at Yale University.
  */
 
+/*
+ * Adapted from PIOS for use in libdeterm by Chris Cotter.
+ * Aug 2012.
+ */
+
 #ifndef PIOS_INC_TYPES_H
 #define PIOS_INC_TYPES_H
 

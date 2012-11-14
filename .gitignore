@@ -6,3 +6,5 @@ user/exe
 eval/exe
 eval/tmp
 *.a
+rand
+merge_sort_arrays.h

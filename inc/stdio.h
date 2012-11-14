@@ -65,22 +65,30 @@ int	vsnprintf(char *str, int size, const char *fmt, va_list args);
 
 int printf(const char *fmt, ...);
 
-#if 0
 /* lib/scanfmt.c */
+#define EOF (-1)
+typedef int FILE;
+#define stdin 0
+#define stdout 1
+#define stderr 2
+
+int fgetc(FILE *fd);
 int	vscanfmt(int (*lookch)(int action, void *scandat), void *scandat,
 		const char *fmt, va_list);
 int	sscanf(const char *str, const char *fmt, ...);
 int	vsscanf(const char *str, const char *fmt, va_list arg);
+int	scanf(const char *fmt, ...);
+int	vscanf(const char *fmt, va_list args);
+int	fscanf(FILE *f, const char *fmt, ...);
+int	vfscanf(FILE *f, const char *fmt, va_list args);
+
+#if 0
 
 /* lib/fprintf.c */
 int	printf(const char *fmt, ...);
 int	vprintf(const char *fmt, va_list args);
 int	fprintf(FILE *f, const char *fmt, ...);
 int	vfprintf(FILE *f, const char *fmt, va_list args);
-int	scanf(const char *fmt, ...);
-int	vscanf(const char *fmt, va_list args);
-int	fscanf(FILE *f, const char *fmt, ...);
-int	vfscanf(FILE *f, const char *fmt, va_list args);
 
 void	perror(const char *s);
 

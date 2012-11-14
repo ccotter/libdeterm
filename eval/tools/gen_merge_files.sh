@@ -1,9 +1,8 @@
 #!/bin/bash
 
-RAND=./rand
-TMP=tmp
+if [ ! -e rand ]; then
+	gcc -o rand rand.c
+fi
 
-for i in 100 1000 10000 100000 1000000 10000000 50000000; do
-	$RAND $i > $TMP/merge_$i
-done
+./rand > ../merge_sort_arrays.h
 
