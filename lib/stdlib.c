@@ -26,6 +26,8 @@ int __det_status;
 char **__envp;
 int __exit_status;
 
+void __init_malloc(void);
+
 void __init(int argc, char **argv, char **envp)
 {
 	if (__is_init)
@@ -52,6 +54,7 @@ void __init(int argc, char **argv, char **envp)
 
 	dfs_setstate(DPROC_READY);
 	__dthread_init();
+	__init_malloc();
 
 }
 

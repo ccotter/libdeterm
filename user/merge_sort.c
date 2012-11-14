@@ -30,13 +30,22 @@ struct array_info tosort[7];
 static int max_depth;
 static void pmerge_sort(int *A, int p, int r, int depth);
 
+static void print(int *a, int len)
+{
+	int i;
+	for (i = 0; i < len; ++i) {
+		printf("%6d ", a[i]);
+	}
+	printf("\n");
+}
+
 static void merge(int *A, int p, int q, int r)
 {
 	int i, j, k;
 	int n1 = q - p;
 	int n2 = r - q;
-	int *L = malloc(sizeof(int) * (n1 + 1));
-	int *R = malloc(sizeof(int) * (n2 + 1));
+	int *L = tmpleft;
+	int *R = tmpright;
 	for (i = 0; i < n1; ++i)
 		L[i] = A[p + i];
 	for (i = 0; i < n2; ++i)
@@ -52,8 +61,6 @@ static void merge(int *A, int p, int q, int r)
 			++j;
 		}
 	}
-	free(L);
-	free(R);
 }
 
 void merge_sort(int *A, int p, int r)
@@ -82,6 +89,7 @@ static void *pmerge_trampoline(void *_data)
 int childid = 0;
 static void pmerge_sort(int *A, int p, int r, int depth)
 {
+	printf("[%d %d)\n", p,r);
 	if (p + 1 < r) {
 		int q = (p + r) / 2;
 		if (depth < max_depth) {
@@ -90,25 +98,17 @@ static void pmerge_sort(int *A, int p, int r, int depth)
 			data.p = p;
 			data.r = q;
 			data.depth = depth + 1;
-			++childid;
-			bench_fork(childid, pmerge_trampoline, &data);
+			int id = ++childid;
+			bench_fork(id, pmerge_trampoline, &data);
 			pmerge_sort(A, q, r, depth + 1);
-			bench_join(childid);
+			//bench_join(id);
+			bench_join2(id, A + p, r - p);
 		} else {
 			merge_sort(A, p, q);
 			merge_sort(A, q, r);
 		}
 		merge(A, p, q, r);
 	}
-}
-
-static void print(int *a, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i) {
-		printf("%6d ", a[i]);
-	}
-	printf("\n");
 }
 
 static int is_sorted(int *A, int len)
@@ -139,6 +139,9 @@ static void usage(char **argv)
 	exit(1);
 }
 
+int len0 = 6;
+int array0[] = {20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1};
+
 static void pass(char type)
 {
 	unsigned i;
@@ -148,17 +151,21 @@ static void pass(char type)
 		len = tosort[i].len;
 
 		/* Do a first pass to ensure the integers are loaded in memory. */
+		memmove(tmpspace, A, len * sizeof(int));
 		if (type == 's') {
-			merge_sort(A, 0, len);
+			merge_sort(tmpspace, 0, len);
 		} else {
-			pmerge_sort(A, 0, len, 0);
+			pmerge_sort(tmpspace, 0, len, 0);
 		}
+		print(tmpspace, len);
+goto ok;
 		/* The the actual benchmark. */
+		memmove(tmpspace, A, len * sizeof(int));
 		uint64_t start = bench_time();
 		if (type == 's') {
-			merge_sort(A, 0, len);
+			merge_sort(tmpspace, 0, len);
 		} else {
-			pmerge_sort(A, 0, len, 0);
+			pmerge_sort(tmpspace, 0, len, 0);
 		}
 		uint64_t end = bench_time() - start;
 		printf("Sorting %15d ints took %lld.%09lld\n",
@@ -166,9 +173,12 @@ static void pass(char type)
 				(long long)end / 1000000000,
 				(long long)end % 1000000000);
 
-		if (!is_sorted(A, len)) {
+ok:
+		if (!is_sorted(tmpspace, len)) {
 			printf("NOT SORTED\n");
 			exit(1);
+		} else {
+			printf("array %d\n",i);
 		}
 	}
 }
@@ -197,6 +207,7 @@ int main(int argc, char **argv)
 		usage(argv);
 
 	tosort[0].len = len1; tosort[0].A = array1;
+	tosort[0].len = len0; tosort[0].A = array0;
 	tosort[1].len = len2; tosort[1].A = array2;
 	tosort[2].len = len3; tosort[2].A = array3;
 	tosort[3].len = len4; tosort[3].A = array4;
