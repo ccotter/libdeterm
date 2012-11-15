@@ -31,14 +31,13 @@ void bench_fork(pid_t pid, void *(*fn)(void*), void *arg)
 extern uint8_t _etext[], _end[];
 void bench_join(pid_t pid)
 {
-	printf("dget=%d\n",
-			dget(pid, DET_MERGE, (unsigned long)_etext, (unsigned long)(_end - _etext),
-			0));
+	dget(pid, DET_MERGE,
+			(unsigned long)_etext, (unsigned long)(_end - _etext), 0);
 	dput(pid, DET_KILL, 0, 0, 0);
 }
 void bench_join2(pid_t pid, void *start, size_t len)
 {
-	printf("dget(%lx %lx)=%d\n",(long)start,len,dget(pid, DET_MERGE, (long)start, (long)len, 0));
+	dget(pid, DET_MERGE, (long)start, (long)len, 0);
 	dput(pid, DET_KILL, 0, 0, 0);
 }
 

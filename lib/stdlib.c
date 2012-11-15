@@ -48,12 +48,12 @@ void __init(int argc, char **argv, char **envp)
 			break;
 	}
 
-	if (__dfs_init_clean())
-		__panic("Error initializing deterministic file system.");
-	__dfs_init = 1;
+	//if (__dfs_init_clean())
+	//	__panic("Error initializing deterministic file system.");
+	//__dfs_init = 1;
 
-	dfs_setstate(DPROC_READY);
-	__dthread_init();
+	//dfs_setstate(DPROC_READY);
+	//__dthread_init();
 	__init_malloc();
 
 }

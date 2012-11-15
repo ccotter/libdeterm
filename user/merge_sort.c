@@ -1,42 +1,92 @@
 
-#include <bench.h>
 #include <stdlib.h>
-#include <limits.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
+#include <assert.h>
+#include <errno.h>
+#include <limits.h>
 
-/* The following is an auto generated file that contains 8
- * arrays to sort. */
-#include "../eval/merge_sort_arrays2.h"
+#include <determinism.h>
+#include "bench.h"
 
-/**
- * Adopted the merge-sort algorithm and parallel variant from
- * "Introduction to Algorithms" 3rd edition, by Cormen, Lieseron, Rivest, Stein.
- *
- * The parallel merge-sort only spawns up to 2 ^ max_depth threads to reduce
- * the overhead of having too many threads doing little work.
- *
+static void pf(long t)
+{
+	printf("time:%ld.%09ld\n",t/1000000000,t%1000000000);
+}
+
+/* Quicksort benchmark from Determinator.
+ * Original credit to PIOS:
+ * Bryan Ford (https://github.com/bford/Determinator)
  */
 
-/* Describe an array that we can sort. Data #included above. */
-struct array_info
-{
-	int len;
-	int *A;
-};
-struct array_info tosort[7];
-
-static int max_depth;
+typedef int	KEY_T;
 static void pmerge_sort(int *A, int p, int r, int depth);
+static void merge_sort(int *A, int p, int r);
+static void merge(int *A, int p, int q, int r);
 
-static void print(int *a, int len)
+/*
+ * These are the COMPARISON macros
+ * Replace these macros by YOUR comparison operations.
+ * e.g. if you are sorting an array of pointers to strings
+ * you should define:
+ *
+ *	GT(x, y)  as   (strcmp((x),(y)) > 0) 	Greater than
+ *	LT(x, y)  as   (strcmp((x),(y)) < 0) 	Less than
+ *	GE(x, y)  as   (strcmp((x),(y)) >= 0) 	Greater or equal
+ *	LE(x, y)  as   (strcmp((x),(y)) <= 0) 	Less or equal
+ *	EQ(x, y)  as   (strcmp((x),(y)) == 0) 	Equal
+ *	NE(x, y)  as   (strcmp((x),(y)) != 0) 	Not Equal
+ */
+#define GT(x, y) ((x) > (y))
+#define LT(x, y) ((x) < (y))
+#define GE(x, y) ((x) >= (y))
+#define LE(x, y) ((x) <= (y))
+#define EQ(x, y) ((x) == (y))
+#define NE(x, y) ((x) != (y))
+
+static int is_sorted(KEY_T *k, int sz)
 {
 	int i;
-	for (i = 0; i < len; ++i) {
-		printf("%6d ", a[i]);
+	for (i = 0; i < sz - 1; ++i) {
+		if (!LT(k[i], k[i+1]))
+			return 0;
+	}
+	return 1;
+}
+
+void print(int *a, int sz)
+{
+	int i;
+	for (i = 0; i < sz; ++i) {
+		printf("%12d", a[i]);
 	}
 	printf("\n");
+}
+
+/*
+ * This is the SWAP macro to swap between two keys.
+ * Replace these macros by YOUR swap macro.
+ * e.g. if you are sorting an array of pointers to strings
+ * You can define it as:
+ *
+ *	#define SWAP(x, y) temp = (x); (x) = (y); (y) = temp
+ *
+ * Bug: 'insort()' doesn't use the SWAP macro.
+ */
+#define SWAP(x, y) temp = (x); (x) = (y); (y) = temp
+
+#define MAX_ARRAY_SIZE	10000000
+int tmpleft[MAX_ARRAY_SIZE];
+int tmpright[MAX_ARRAY_SIZE];
+
+void merge_sort(int *A, int p, int r)
+{
+	if (p + 1 < r) {
+		int q = (p + r) / 2;
+		merge_sort(A, p, q);
+		merge_sort(A, q, r);
+		merge(A, p, q, r);
+	}
 }
 
 static void merge(int *A, int p, int q, int r)
@@ -63,15 +113,7 @@ static void merge(int *A, int p, int q, int r)
 	}
 }
 
-void merge_sort(int *A, int p, int r)
-{
-	if (p + 1 < r) {
-		int q = (p + r) / 2;
-		merge_sort(A, p, q);
-		merge_sort(A, q, r);
-		merge(A, p, q, r);
-	}
-}
+int Nth;
 
 struct pmerge_data
 {
@@ -85,25 +127,44 @@ static void *pmerge_trampoline(void *_data)
 	pmerge_sort(data->A, data->p, data->r, data->depth);
 	return NULL;
 }
-
+int max_depth;
 int childid = 0;
 static void pmerge_sort(int *A, int p, int r, int depth)
 {
-	printf("[%d %d)\n", p,r);
 	if (p + 1 < r) {
 		int q = (p + r) / 2;
 		if (depth < max_depth) {
-			struct pmerge_data data;
-			data.A = A;
-			data.p = p;
-			data.r = q;
-			data.depth = depth + 1;
-			int id = ++childid;
-			bench_fork(id, pmerge_trampoline, &data);
-			pmerge_sort(A, q, r, depth + 1);
-			//bench_join(id);
-			bench_join2(id, A + p, r - p);
+			struct pmerge_data larg = {
+				.A = A,
+				.p = p,
+				.r = q,
+				.depth = depth + 1
+			};
+			struct pmerge_data rarg = {
+				.A = A,
+				.p = q,
+				.r = r,
+				.depth = depth + 1
+			};
+
+			int lid = ++childid;
+			int rid = ++childid;
+			long T;
+
+			int rc = dput(lid, DET_START, 0xdead, 0, 0);
+			if (!rc) { pmerge_trampoline(&larg); dret(); }
+			rc = dput(rid, DET_START, 0xdead, 0, 0);
+			if (!rc) { pmerge_trampoline(&rarg); dret(); }
+
+			/* Join data. */
+			size_t sz = sizeof(int) * (q - p + 1);
+			dget(lid, DET_VM_COPY, (long)(A+p), sz, (long)(A+p));
+			sz = sizeof(int) * (r - q + 1);
+			dget(rid, DET_VM_COPY, (long)(A+q), sz, (long)(A+q));
+			dput(lid, DET_KILL, 0, 0, 0);
+			dput(rid, DET_KILL, 0, 0, 0);
 		} else {
+			/* Once we reach a certain depth, stop forking threads. */
 			merge_sort(A, p, q);
 			merge_sort(A, q, r);
 		}
@@ -111,111 +172,71 @@ static void pmerge_sort(int *A, int p, int r, int depth)
 	}
 }
 
-static int is_sorted(int *A, int len)
-{
-	int i;
-	for (i = 0; i < len - 1; ++i) {
-		if (A[i] > A[i+1])
-			return 0;
-	}
-	return 1;
-}
+#define MAXTHREADS	16
+#define NITER		1
 
-void read_array(int **A, int *len)
-{
-	int *ar, i;
-	scanf("%d", len);
-	ar = malloc(sizeof(int) * *len);
-	for (i = 0; i < *len; ++i) {
-		scanf("%d", &ar[i]);
-	}
-	*A = ar;
-}
+KEY_T randints[NITER][MAX_ARRAY_SIZE+1];
 
-static void usage(char **argv)
-{
-	printf("Usage: %s -t s|p -d max_depth \n", argv[0]);
-	printf("  type: 's' for serial, 'p' for parallel\n");
-	exit(1);
-}
-
-int len0 = 6;
-int array0[] = {20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1};
-
-static void pass(char type)
-{
-	unsigned i;
-	for (i = 0; i < sizeof(tosort) / sizeof(struct array_info); ++i) {
-		int *A, len;
-		A = tosort[i].A;
-		len = tosort[i].len;
-
-		/* Do a first pass to ensure the integers are loaded in memory. */
-		memmove(tmpspace, A, len * sizeof(int));
-		if (type == 's') {
-			merge_sort(tmpspace, 0, len);
-		} else {
-			pmerge_sort(tmpspace, 0, len, 0);
+#include <rng.h>
+void
+gen_randints(ssize_t n, int seed) {
+	bseed(seed);
+	int i,j;
+	for(j = 0; j < NITER; j++) {
+		for(i = 0; i < n; ++i) {
+			randints[j][i] = (KEY_T)(UINT_MAX * brand());
 		}
-		print(tmpspace, len);
-goto ok;
-		/* The the actual benchmark. */
-		memmove(tmpspace, A, len * sizeof(int));
-		uint64_t start = bench_time();
-		if (type == 's') {
-			merge_sort(tmpspace, 0, len);
-		} else {
-			pmerge_sort(tmpspace, 0, len, 0);
-		}
-		uint64_t end = bench_time() - start;
-		printf("Sorting %15d ints took %lld.%09lld\n",
-				len,
-				(long long)end / 1000000000,
-				(long long)end % 1000000000);
-
-ok:
-		if (!is_sorted(tmpspace, len)) {
-			printf("NOT SORTED\n");
-			exit(1);
-		} else {
-			printf("array %d\n",i);
-		}
+		randints[j][n] = INT_MAX;	// sentinel at end of array
 	}
 }
 
-int main(int argc, char **argv)
-{
-	int c;
-	char type = -1;
-	max_depth = -1;
-	while ((c = getopt(argc, argv, "t:d:")) != -1) {
-		switch (c) {
-			case 't':
-				type = optarg[0];
-				if (type != 'p' && type != 's')
-					usage(argv);
-				break;
-			case 'd':
-				max_depth = strtol(optarg, NULL, 10);
-				break;
-			case '?':
-			default:
-				usage(argv);
-		}
+void
+testmergesort(int array_size, int nthread)
+{	
+	assert(nthread <= MAXTHREADS);
+	int iter;
+
+	gen_randints(array_size, 2);
+	uint64_t ts = bench_time();
+	for(iter = 0; iter < NITER; ++iter) {
+		struct pmerge_data arg = {
+			.A = randints[iter],
+			.p = 0,
+			.r = array_size,
+			.depth = 0
+		};
+		pmerge_trampoline(&arg);
+		if (!is_sorted(randints[iter], array_size))
+			printf("BAD\n");
 	}
-	if (type == -1 || max_depth == -1)
-		usage(argv);
+	uint64_t td = bench_time();
+	uint64_t tt = (td - ts);
 
-	tosort[0].len = len1; tosort[0].A = array1;
-	tosort[0].len = len0; tosort[0].A = array0;
-	tosort[1].len = len2; tosort[1].A = array2;
-	tosort[2].len = len3; tosort[2].A = array3;
-	tosort[3].len = len4; tosort[3].A = array4;
-	tosort[4].len = len5; tosort[4].A = array5;
-	tosort[5].len = len6; tosort[5].A = array6;
-	tosort[6].len = len7; tosort[6].A = array7;
+	long long t1 = (tt/NITER) / 1000000000;
+	long long t2 = (tt/NITER) % 1000000000;
+	printf("array_size: %d\tavg. time: %lld.%09lld\n", array_size, t1, t2);
+}
 
-	pass(type);
+int
+main()
+{
+	int nth;
+	max_depth = 0;
+	for (nth = 1; nth <= MAXTHREADS; nth *= 2, ++max_depth) {
+		printf("nthreads %d...\n", nth, max_depth);
+		testmergesort(100000, nth);
+		continue;
+		testmergesort(1000, nth);
+		testmergesort(2000, nth);
+		testmergesort(5000, nth);
+		testmergesort(10000, nth);
+		testmergesort(20000, nth);
+		testmergesort(50000, nth);
+		testmergesort(100000, nth);
+		testmergesort(200000, nth);
+		testmergesort(500000, nth);
+		testmergesort(1000000, nth);
+	}
 	return 0;
 }
 

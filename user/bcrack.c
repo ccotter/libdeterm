@@ -126,8 +126,42 @@ int psearch(uint8_t *str, int len, const unsigned char *hash)
 	return 0;	// no match at this string length
 }
 
+int main(void)
+{
+	char hashv[] = "a56cad4714531d8d7695e1c9b087e8f3";
+	// Decode the MD5 hash from hex
+	unsigned char hash[16];
+	int i;
+	for (i = 0; i < 16; i++) {
+		int hi = hexdig(hashv[i*2+0]);
+		int lo = hexdig(hashv[i*2+1]);
+		if (hi < 0 || lo < 0)
+			usage();
+		hash[i] = (hi << 4) | lo;
+	}
+
+	nthreads = 4;
+	// Search all strings of length 1, then of length 2, ...
+	int len;
+	long t = bench_time();
+	for (len = 1; len < MAXLEN; len++) {
+		printf("Searching strings of length %d\n", len);
+		uint8_t str[len+1];
+		str[len] = 0;		// Null terminate for printing match
+		memset(str, MINCHR, len);
+		if (psearch(str, len, hash)) {
+			printf("Match: '%s'\n", out);
+			t = bench_time() - t;
+			printf("time: %ld.%09ld\n", t/1000000000,t%1000000000);
+			exit(0);
+		}
+	}
+	printf("not found\n");
+	return 1;
+}
+
 int
-main(int argc, char **argv)
+main2(int argc, char **argv)
 {
 	if (argc != 3 || (nthreads = strtol(argv[1], NULL, 10)) <= 0
 			|| strlen(argv[2]) != 16*2)
