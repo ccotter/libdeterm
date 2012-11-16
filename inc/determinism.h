@@ -20,14 +20,14 @@ long become_deterministic(void);
  * These library functions are designed to emulate familiar idioms (fork, etc.
  */
 void get_register_state(struct user_regs_struct *regs);
-long dput_regs(pid_t pid, const struct user_regs_struct *regs, unsigned long flags);
+long dput_regs(pid_t pid, const struct user_regs_struct *regs,
+		unsigned long flags);
 long dget_regs(pid_t pid, struct user_regs_struct *regs, unsigned long flags);
 long master_allow_signals(sigset_t *set, size_t size);
 
 /* TODO to go into a dthread.h header */
-pid_t dfork(unsigned long flags);
+pid_t dfork(pid_t pid, unsigned long flags);
 int dwait(pid_t child);
-pid_t dfork_fn(void *(fn)(void*), void *arg);
 
 #endif
 

@@ -7,7 +7,7 @@
 
 #include "bench.h"
 
-#define MINDIM		16
+#define MINDIM		1024
 #define MAXDIM		1024
 #define MAXTHREADS	16
 
@@ -73,7 +73,6 @@ matmult(int nbi, int nbj, int dim)
 			long qwe = bench_time();
 			pthread_create(&threads[child], NULL, blkmult, &arg[child]);
 			qwe = (bench_time() - qwe) / 1000;
-			printf("fork() took %ld\n", qwe);
 		}
 
 	// Now go back and merge in the results of all our children

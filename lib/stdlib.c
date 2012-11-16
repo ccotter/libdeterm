@@ -14,7 +14,6 @@ static void flush_printf_buffer(struct printbuf *pb);
 void __init(int argc, char **argv, char **envp);
 void __panic(const char *msg, ...);
 int __dfs_init_clean(void);
-void __dthread_init(void);
 
 #define __DET_MASTER 1
 #define __DET_DETERMINISTIC 2
@@ -48,14 +47,19 @@ void __init(int argc, char **argv, char **envp)
 			break;
 	}
 
-	//if (__dfs_init_clean())
-	//	__panic("Error initializing deterministic file system.");
-	//__dfs_init = 1;
+	if (__dfs_init_clean())
+		__panic("Error initializing deterministic file system.");
+	__dfs_init = 1;
 
-	//dfs_setstate(DPROC_READY);
-	//__dthread_init();
+	dfs_setstate(DPROC_READY);
 	__init_malloc();
 
+}
+
+void __after_dfork(void)
+{
+	/* After a dfork(), set ourselves up properly. */
+	__det_status = __DET_DETERMINISTIC;
 }
 
 char *getenv(const char *name)
@@ -73,13 +77,17 @@ void exit(int status)
 {
 	if (__DET_DETERMINISTIC == __det_status) {
 		__exit_status = 0xff & status;
+		flush_printf_buffer(&pb);
 		dret();
-		while(1) dret();
+		while(1)
+			dret();
 	} else {
 		/* Flush buffers. */
 		flush_printf_buffer(&master_pb);
 		syscall1(__NR_exit, (long)status);
-		while(1);
+		/* Shouldn't get here. */
+		while(1)
+			;
 	}
 }
 
@@ -92,7 +100,7 @@ void __panic(const char *msg, ...)
 	write(2, __panic_buffer, strlen(__panic_buffer));
 	write(2, "\n", 1);
 	va_end(ap);
-	exit(-1);
+	exit(1);
 }
 
 #define PRINT_BUFFER_SIZE 512
@@ -141,6 +149,7 @@ int printf(const char *fmt, ...)
 		vprintfmt(putch_master_printf, &count, fmt, ap);
 		flush_printf_buffer(&master_pb);
 	} else {
+		while(1);
 		vprintfmt(putch_printf, &count, fmt, ap);
 	}
 

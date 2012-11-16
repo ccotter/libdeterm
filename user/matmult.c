@@ -1,10 +1,11 @@
 
+#include <determinism.h>
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <bench.h>
 
-#define MINDIM		16
+#define MINDIM		1024
 #define MAXDIM		1024
 #define MAXTHREADS	16
 
@@ -57,7 +58,8 @@ matmult(int nbi, int nbj, int dim)
 	int bi,bj;
 	struct tharg arg[256];
 
-	//printf("INSIDE matmult(%d, %d, %d)\n", nbi, nbj, dim);
+	long waittime=0;
+
 	// Fork off a thread to compute each cell in the result matrix
 	for (bi = 0; bi < nbi; bi++)
 		for (bj = 0; bj < nbj; bj++) {
@@ -68,15 +70,30 @@ matmult(int nbi, int nbj, int dim)
 			arg[child].nbj = nbj;
 			arg[child].dim = dim;
 			bench_fork(child, blkmult, &arg[child]);
+			/*if (!dput(child, DET_START, 0, 0, 0)) {
+				blkmult(&arg[child]);
+				dret();
+			}*/
 		}
 
 	// Now go back and merge in the results of all our children
 	for (bi = 0; bi < nbi; bi++) {
 		for (bj = 0; bj < nbj; bj++) {
 			int child = bi*nbj + bj;
+			dget(child, DET_GET_STATUS,0,0,0);
+			long T = bench_time();
 			bench_join(child);
+			waittime += bench_time()-T;
+			/*dget(0, DET_GET_STATUS,0,0,0);
+			long T = bench_time();
+			int rc=dget(child, DET_VM_COPY, (long)r, sizeof(r), (long)r);
+			waittime += bench_time()-T;
+			if (rc<0)
+				printf("rc=%d\n",rc);
+			dput(child, DET_KILL, 0, 0, 0);*/
 		}
 	}
+	printf("waited %ld.%09ld\n", waittime/1000000000,waittime%1000000000);
 }
 
 int main(int argc, char **argv)
@@ -97,9 +114,8 @@ int main(int argc, char **argv)
 			matmult(nbi, nbj, dim);	// once to warm up...
 
 			uint64_t ts = bench_time();
-			for (iter = 0; iter < niter; iter++) {
+			for (iter = 0; iter < niter; iter++)
 				matmult(nbi, nbj, dim);
-			}
 			uint64_t td = (bench_time() - ts) / niter;
 
 			printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",

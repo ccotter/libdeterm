@@ -3,7 +3,6 @@
 #include <fs.h>
 #include <determinism.h>
 #include <assert.h>
-#include <debug.h>
 
 unsigned char array[0x2000];
 unsigned char array_2[0x2000];
@@ -25,7 +24,7 @@ static int check(unsigned char *A, int len, int off)
 }
 static pid_t child(int count)
 {
-	pid_t id = dfork(0);
+	pid_t id = dfork(count, 0);
     if (!id) {
         char fname[100];
         int fd;
@@ -36,7 +35,7 @@ static pid_t child(int count)
         dfs_close(fd);
         dret();
     }
-	return id;
+	return count;
 }
 
 #define NCHILDREN 50
@@ -92,7 +91,7 @@ int main(void)
         assert(!memcmp(array, array_2, sizeof(array)));
         dfs_close(fd);
     }
-    iprintf("All tests passed\n");
+    printf("All tests passed\n");
 
     return 0;
 }
