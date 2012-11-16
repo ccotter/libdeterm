@@ -13,7 +13,13 @@ has a lot of test code/prototypes.
 
 ##Acknowledgements
 
-Some of the code in `inc/` and `lib` is derived from MIT's JOS operating system.
-I will do my best to document which files came from JOS. See NOTICES for JOS's
-license.
+Some of the code in `inc/` and `lib/` is derived or copied exactly from MIT's
+JOS operating system. I will do my best to document which files came from JOS.
+See NOTICES for JOS's license.
+
+### Determinator
+The library itself is in many ways inspired by
+[Determinator](https://github.com/bford/Determinator). See ["Efficient
+System-Enforced Deterministic Parallelism](
+http://static.usenix.org/event/osdi10/tech/full_papers/Aviram.pdf).
 
