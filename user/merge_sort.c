@@ -9,19 +9,14 @@
 #include <determinism.h>
 #include "bench.h"
 
-static void pf(long t)
-{
-	printf("time:%ld.%09ld\n",t/1000000000,t%1000000000);
-}
-
 /* Quicksort benchmark from Determinator.
  * Original credit to PIOS:
  * Bryan Ford (https://github.com/bford/Determinator)
  */
 
 typedef int	KEY_T;
-static void pmerge_sort(int *A, int p, int r, int depth);
 static void merge_sort(int *A, int p, int r);
+static void *pmerge_sort(void *_data);
 static void merge(int *A, int p, int q, int r);
 
 /*
@@ -54,7 +49,7 @@ static int is_sorted(KEY_T *k, int sz)
 	return 1;
 }
 
-void print(int *a, int sz)
+static void print(int *a, int sz)
 {
 	int i;
 	for (i = 0; i < sz; ++i) {
@@ -75,11 +70,11 @@ void print(int *a, int sz)
  */
 #define SWAP(x, y) temp = (x); (x) = (y); (y) = temp
 
-#define MAX_ARRAY_SIZE	10000000
+#define MAX_ARRAY_SIZE	10000001
 int tmpleft[MAX_ARRAY_SIZE];
 int tmpright[MAX_ARRAY_SIZE];
 
-void merge_sort(int *A, int p, int r)
+static void merge_sort(int *A, int p, int r)
 {
 	if (p + 1 < r) {
 		int q = (p + r) / 2;
@@ -103,7 +98,7 @@ static void merge(int *A, int p, int q, int r)
 	L[n1] = R[n2] = INT_MAX;
 	i = j = 0;
 	for (k = p; k < r; ++k) {
-		if (L[i] <= R[j]) {
+		if (LT(L[i],R[j])) {
 			A[k] = L[i];
 			++i;
 		} else {
@@ -113,24 +108,21 @@ static void merge(int *A, int p, int q, int r)
 	}
 }
 
-int Nth;
-
 struct pmerge_data
 {
 	int *A;
 	int p, r, depth;
 };
 
-static void *pmerge_trampoline(void *_data)
-{
-	struct pmerge_data *data = _data;
-	pmerge_sort(data->A, data->p, data->r, data->depth);
-	return NULL;
-}
 int max_depth;
 int childid = 0;
-static void pmerge_sort(int *A, int p, int r, int depth)
+static void *pmerge_sort(void *_data)
 {
+	struct pmerge_data *data = _data;
+	KEY_T *A = data->A;
+	int p = data->p;
+	int r = data->r;
+	int depth = data->depth;
 	if (p + 1 < r) {
 		int q = (p + r) / 2;
 		if (depth < max_depth) {
@@ -151,10 +143,10 @@ static void pmerge_sort(int *A, int p, int r, int depth)
 			int rid = ++childid;
 			long T;
 
-			int rc = dput(lid, DET_START, 0xdead, 0, 0);
-			if (!rc) { pmerge_trampoline(&larg); dret(); }
-			rc = dput(rid, DET_START, 0xdead, 0, 0);
-			if (!rc) { pmerge_trampoline(&rarg); dret(); }
+			int rc = dput(lid, DET_START, 0, 0, 0);
+			if (!rc) { pmerge_sort(&larg); dret(); }
+			rc = dput(rid, DET_START, 0, 0, 0);
+			if (!rc) { pmerge_sort(&rarg); dret(); }
 
 			/* Join data. */
 			size_t sz = sizeof(int) * (q - p + 1);
@@ -170,10 +162,11 @@ static void pmerge_sort(int *A, int p, int r, int depth)
 		}
 		merge(A, p, q, r);
 	}
+	return NULL;
 }
 
 #define MAXTHREADS	16
-#define NITER		1
+#define NITER		10
 
 KEY_T randints[NITER][MAX_ARRAY_SIZE+1];
 
@@ -205,9 +198,9 @@ testmergesort(int array_size, int nthread)
 			.r = array_size,
 			.depth = 0
 		};
-		pmerge_trampoline(&arg);
-		if (!is_sorted(randints[iter], array_size))
-			printf("BAD\n");
+		pmerge_sort(&arg);
+		//if (!is_sorted(randints[iter], array_size))
+		//	printf("NOT SORTED\n");
 	}
 	uint64_t td = bench_time();
 	uint64_t tt = (td - ts);
@@ -218,24 +211,21 @@ testmergesort(int array_size, int nthread)
 }
 
 int
-main()
+main(void)
 {
 	int nth;
 	max_depth = 0;
 	for (nth = 1; nth <= MAXTHREADS; nth *= 2, ++max_depth) {
 		printf("nthreads %d...\n", nth, max_depth);
-		testmergesort(100000, nth);
-		continue;
 		testmergesort(1000, nth);
-		testmergesort(2000, nth);
 		testmergesort(5000, nth);
 		testmergesort(10000, nth);
-		testmergesort(20000, nth);
 		testmergesort(50000, nth);
 		testmergesort(100000, nth);
-		testmergesort(200000, nth);
 		testmergesort(500000, nth);
 		testmergesort(1000000, nth);
+		testmergesort(5000000, nth);
+		testmergesort(10000000, nth);
 	}
 	return 0;
 }

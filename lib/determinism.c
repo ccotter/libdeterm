@@ -43,12 +43,12 @@ long master_allow_signals(sigset_t *set, size_t size)
  * Otherwise, returns 1 to the calling process and returns 0
  * into the newly allocated child process.
  */
-pid_t dfork(pid_t pid, unsigned long flags)
+int dfork(pid_t pid)
 {
 	struct user_regs_struct regs;
 
 	get_register_state(&regs);
-	pid_t rc = dput_regs(pid, &regs, flags);
+	pid_t rc = dput_regs(pid, &regs, 0);
 	if (rc < 0) {
 		return rc;
 	} else if (rc > 0) {

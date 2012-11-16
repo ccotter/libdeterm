@@ -24,7 +24,7 @@ static int check(unsigned char *A, int len, int off)
 }
 static pid_t child(int count)
 {
-	pid_t id = dfork(count, 0);
+	pid_t id = dfork(count);
     if (!id) {
         char fname[100];
         int fd;

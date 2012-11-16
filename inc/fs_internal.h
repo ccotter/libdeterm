@@ -97,7 +97,7 @@ struct super_block
     ino_t s_root; /* inode number of the root file inode (i.e. "/"). */
 };
 
-#define FS_VM_START 0x10000000
+#define FS_VM_START 0x1000000000
 #define FS_VM_END (FS_VM_START + FS_SIZE)
 #define FS_SCRATCH1 FS_VM_END
 #define FS_SCRATCH1_SIZE ((6 - FS_BITMAP_BLOCKS - 4) * FS_BLOCK_SIZE)
@@ -116,7 +116,7 @@ struct super_block
 
 _Static_assert(0 == FS_NINODES % (FS_BLOCK_SIZE / FS_INODE_SIZE),
 		"NINODES not multiple of BLOCK_SIZE/INODE_SIZE");
-_Static_assert(0x20000000 == FS_STATE + FS_STATE_SIZE,
+_Static_assert(0x1010000000 == FS_STATE + FS_STATE_SIZE,
 		"FS memory location incorrect");
 
 #define NMAX_OPEN_FILES 10

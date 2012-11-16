@@ -149,7 +149,6 @@ int printf(const char *fmt, ...)
 		vprintfmt(putch_master_printf, &count, fmt, ap);
 		flush_printf_buffer(&master_pb);
 	} else {
-		while(1);
 		vprintfmt(putch_printf, &count, fmt, ap);
 	}
 
