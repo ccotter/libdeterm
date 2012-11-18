@@ -9,25 +9,18 @@ The benchmark sorts each array two times back-to-back and times the second sort
 Run eval/tools/gen_merge_files to create files with random arrays to sort. These
 files go into eval/tmp.
 
-Legacy Linux
-------------
-
-Program exists as eval/merge.c, executable in eval/exe/merge.
-Use eval_merge.sh to run serial and parallel versions.
-./eval_merge.sh s > results/merge_serial 2>&1
-./eval_merge.sh p > results/merge_parallel 2>&1
-
-Deterministic Linux
--------------------
-Program code exist as user/merge_sort.c, executable in user/exe/merge_sort.
+Deterministic Linux and pthreads
+--------------------------------
+Determinstic: user/merge_sort.c, executable user/exe/merge_sort.
+pthreads: eval/merge.c, executable eval/exe/merge.
 
 MD5 brute force password cracker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Deterministic Linux and pthreads
 --------------------------------
-Determinstic: program code: user/bcrack.c, executable user/exe/bcrack.
-pthreads: program code: eval/bcrack.c, executable eval/exe/bcrack.
+Determinstic: user/bcrack.c, executable user/exe/bcrack.
+pthreads: eval/bcrack.c, executable eval/exe/bcrack.
 
 
 Matrix Multiplication

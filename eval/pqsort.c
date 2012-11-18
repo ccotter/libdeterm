@@ -234,7 +234,7 @@ pqsort(void *arg)
 	return NULL;
 }
 
-#define MAX_ARRAY_SIZE	1000000
+#define MAX_ARRAY_SIZE	10000000
 #define MAXTHREADS	16
 #define NITER		10
 
@@ -287,15 +287,14 @@ main()
 	for (nth = 1; nth <= MAXTHREADS; nth *= 2) {
 		printf("nthreads %d...\n", nth);
 		testpqsort(1000, nth);
-		testpqsort(2000, nth);
 		testpqsort(5000, nth);
 		testpqsort(10000, nth);
-		testpqsort(20000, nth);
 		testpqsort(50000, nth);
 		testpqsort(100000, nth);
-		testpqsort(200000, nth);
 		testpqsort(500000, nth);
 		testpqsort(1000000, nth);
+		testpqsort(5000000, nth);
+		testpqsort(10000000, nth);
 	}
 	return 0;
 }

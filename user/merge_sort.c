@@ -165,7 +165,7 @@ static void *pmerge_sort(void *_data)
 	return NULL;
 }
 
-#define MAXTHREADS	16
+#define MAXTHREADS	8
 #define NITER		10
 
 KEY_T randints[NITER][MAX_ARRAY_SIZE+1];
