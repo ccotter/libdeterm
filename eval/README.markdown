@@ -5,8 +5,7 @@ Merge sort
 ~~~~~~~~~~
 
 This evaluation sorts a list of integers using serial or parallel merge sort.
-The integers are hardcoded into the executable. The benchmark sorts each array
-two times back-to-back and times the second sort.
+The benchmark sorts each array two times back-to-back and times the second sort
 Run eval/tools/gen_merge_files to create files with random arrays to sort. These
 files go into eval/tmp.
 
@@ -21,12 +20,15 @@ Use eval_merge.sh to run serial and parallel versions.
 Deterministic Linux
 -------------------
 Program code exist as user/merge_sort.c, executable in user/exe/merge_sort.
-TODO
 
 MD5 brute force password cracker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
+Deterministic Linux and pthreads
+--------------------------------
+Determinstic: program code: user/bcrack.c, executable user/exe/bcrack.
+pthreads: program code: eval/bcrack.c, executable eval/exe/bcrack.
+
 
 Matrix Multiplication
 ~~~~~~~~~~~~~~~~~~~~~

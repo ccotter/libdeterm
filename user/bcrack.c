@@ -35,18 +35,9 @@
 			 (c) >= 'a' && (c) <= 'f' ? (c) - 'a' + 10 : \
 			 (c) >= 'A' && (c) <= 'F' ? (c) - 'A' + 10 : -1)
 
-int nthreads;
-
 int found;
 char out[MAXLEN+1];
-
-void
-usage()
-{
-	printf("Usage: pwcrack <nthreads> <md5-hash>\n");
-	//fprintf(stderr, "Usage: pwcrack <nthreads> <md5-hash>\n");
-	exit(1);
-}
+uint64_t tt;
 
 // Increment string 'str' lexicographically,
 // starting with the "least significant character" at position 'lo',
@@ -95,8 +86,9 @@ search(void *args)
 }
 
 // Like 'search', but do in parallel across 2 nodes with 2 threads each
-int psearch(uint8_t *str, int len, const unsigned char *hash)
+int psearch(uint8_t *str, int len, const unsigned char *hash, int nthreads)
 {
+	tt = bench_time();
 	if (len <= BLOCKLEN) {
 		search_args a = { {0}, len, 0, len, hash };
 		strcpy((char*)a.str, (char*)str);
@@ -126,72 +118,63 @@ int psearch(uint8_t *str, int len, const unsigned char *hash)
 	return 0;	// no match at this string length
 }
 
-int main(void)
+void
+crack(char *hashv, int nthreads)
 {
-	char hashv[] = "a56cad4714531d8d7695e1c9b087e8f3";
+	found = 0;
 	// Decode the MD5 hash from hex
 	unsigned char hash[16];
 	int i;
 	for (i = 0; i < 16; i++) {
 		int hi = hexdig(hashv[i*2+0]);
 		int lo = hexdig(hashv[i*2+1]);
-		if (hi < 0 || lo < 0)
-			usage();
 		hash[i] = (hi << 4) | lo;
 	}
 
-	nthreads = 4;
 	// Search all strings of length 1, then of length 2, ...
 	int len;
-	long t = bench_time();
 	for (len = 1; len < MAXLEN; len++) {
-		printf("Searching strings of length %d\n", len);
 		uint8_t str[len+1];
 		str[len] = 0;		// Null terminate for printing match
 		memset(str, MINCHR, len);
-		if (psearch(str, len, hash)) {
-			printf("Match: '%s'\n", out);
-			t = bench_time() - t;
-			printf("time: %ld.%09ld\n", t/1000000000,t%1000000000);
-			exit(0);
+		if (psearch(str, len, hash, nthreads)) {
+			tt = bench_time() - tt;
+			printf("  nthreads = %d: found '%5s' in %ld.%09ld seconds.\n",
+					nthreads,
+					out,
+					tt / 1000000000,
+					tt % 1000000000);
+			return;
 		}
 	}
-	printf("not found\n");
-	return 1;
 }
 
-int
-main2(int argc, char **argv)
+int main(void)
 {
-	if (argc != 3 || (nthreads = strtol(argv[1], NULL, 10)) <= 0
-			|| strlen(argv[2]) != 16*2)
-		usage();
-	assert(nthreads > 0);
-
-	// Decode the MD5 hash from hex
-	unsigned char hash[16];
-	int i;
-	for (i = 0; i < 16; i++) {
-		int hi = hexdig(argv[2][i*2+0]);
-		int lo = hexdig(argv[2][i*2+1]);
-		if (hi < 0 || lo < 0)
-			usage();
-		hash[i] = (hi << 4) | lo;
-	}
-
-	// Search all strings of length 1, then of length 2, ...
-	int len;
-	for (len = 1; len < MAXLEN; len++) {
-		printf("Searching strings of length %d\n", len);
-		uint8_t str[len+1];
-		str[len] = 0;		// Null terminate for printing match
-		memset(str, MINCHR, len);
-		if (psearch(str, len, hash)) {
-			printf("Match: '%s'\n", out);
-			exit(0);
+	char *hashes[] = {
+		"2bec52c0729e136fcf418b7ee42e51c7",
+		"4e50f5e7a29d352bc4c3267cffdd50a4",
+		"75cf1d4a01dfd9703c26927574d72230",
+		"a6f931611c69f3500ad52e84a0c96d2d",
+		"60662e6279e742da121699b10c5a9f54",
+		"78d2a8b546632b0df5f0cd12b551998a",
+		"dbdd1e7fba9a2ee6dd033af77c8ee398",
+		"38f1eebefea62e6affc37d97202df948",
+		"6e4eb59d8f151da5ce10866c35f433ab",
+		"86f21f30b32ab591e804add38f82d7b8",
+		"40cee8c8635cc4e301848e20c4eb840a",
+		"fbf45a198e8b5be665c3903ddebb9eff"
+	};
+	int nthreads[] = {1, 2, 4, 8};
+	unsigned i;
+	for (i = 0; i < sizeof(hashes) / sizeof(char*); ++i) {
+		unsigned j;
+		printf("Searching for password to match %s..\n", hashes[i]);
+		for (j = 0; j < sizeof(nthreads) / sizeof(int); ++j) {
+			crack(hashes[i], nthreads[j]);
 		}
+		printf("\n");
 	}
-	printf("not found\n");
-	return 1;
+	return 0;
 }
 
