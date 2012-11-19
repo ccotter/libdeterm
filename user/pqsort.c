@@ -1,18 +1,11 @@
 
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
-
 #include <determinism.h>
-#include "bench.h"
-
-/* Quicksort benchmark from Determinator.
- * Original credit to PIOS:
- * Bryan Ford (https://github.com/bford/Determinator)
- */
+#include <bench.h>
 
 typedef int	KEY_T;
 
@@ -185,8 +178,6 @@ typedef struct pqsort_args
 	int nth, cn;
 } pqsort_args;
 
-int Nth;
-
 void *
 pqsort(void *arg)
 {
@@ -196,7 +187,7 @@ pqsort(void *arg)
 	int nth = a->nth;
 	int cn = a->cn;
 
-	printf("cn %d, lo = %x, hi = %x, num = %d\n", cn, lo, hi, hi-lo + 1);
+	//printf("cn %d, lo = %x, hi = %x, num = %d\n", cn, lo, hi, hi-lo + 1);
 	if (lo >= hi)
 		return NULL;
 	
@@ -228,34 +219,38 @@ pqsort(void *arg)
 		.lo = lo, .hi = l-2, .nth = nth >> 1, .cn = lcn };
 	pqsort_args rarg = {
 		.lo = h+1, .hi = hi, .nth = nth >> 1, .cn = rcn };
-
-	/* Use VM_COPY, not SNAP/MERGE. */
-	ssize_t sz;
-	int rc;
-	rc = dput(lcn, DET_START, 0, 0, 0);
-	if (!rc) { pqsort(&larg); dret(); }
-	rc = dput(rcn, DET_START, 0, 0, 0);
-	if (!rc) { pqsort(&rarg); dret(); }
-
-	dget(lcn, 0, 0, 0, 0);
-	dget(rcn, 0, 0, 0, 0);
-
-	/* Get results. */
-	sz = (l - 2 - lo + 1) * sizeof(KEY_T);
-	if (sz < 0) sz = 0;
-	dget(lcn, DET_VM_COPY, (long)lo, sz, (long)lo);
-	sz = (hi - h - 1 + 1) * sizeof(KEY_T);
-	if (sz < 0) sz = 0;
-	dget(rcn, DET_VM_COPY, (long)(h+1), sz, (long)(h+1));
-
+#if 1
+	bench_fork(lcn, pqsort, &larg);
+	bench_fork(rcn, pqsort, &rarg);
+	bench_join(lcn);
+	bench_join(rcn);
+#elif 1
+	int rc1,rc2;
+	if (!(rc1=dput(lcn, DET_START, 0, 0, 0))) { pqsort(&larg); dret(); }
+	if (!(rc2=dput(rcn, DET_START, 0, 0, 0))) { pqsort(&rarg); dret(); }
+	if (rc1<0 || rc2<0)printf("first %d %d\n",rc1,rc2);
+	rc1=dget(lcn, DET_VM_COPY, (unsigned long)lo,
+			sizeof(KEY_T) * (l - 1 - lo), (unsigned long)lo);
+	rc2=dget(rcn, DET_VM_COPY, (unsigned long)(h + 1),
+			sizeof(KEY_T) * (hi - h), (unsigned long)(h + 1));
+	if (rc1<0 || rc2<0)printf("%d %d\n",rc1,rc2);
 	dput(lcn, DET_KILL, 0, 0, 0);
 	dput(rcn, DET_KILL, 0, 0, 0);
-
+#else
+	if (!dput(lcn, DET_START|DET_SNAP, 0, 0, 0)) { pqsort(&larg); dret(); }
+	if (!dput(rcn, DET_START|DET_SNAP, 0, 0, 0)) { pqsort(&rarg); dret(); }
+	dget(lcn, DET_MERGE, (unsigned long)lo,
+			sizeof(KEY_T) * (l - 1 - lo), (unsigned long)lo);
+	dget(rcn, DET_MERGE, (unsigned long)(h + 1),
+			sizeof(KEY_T) * (hi - h), (unsigned long)(h + 1));
+	dput(lcn, DET_KILL, 0, 0, 0);
+	dput(rcn, DET_KILL, 0, 0, 0);
+#endif
 	return NULL;
 }
 
-#define MAX_ARRAY_SIZE	1000000
-#define MAXTHREADS	16
+#define MAX_ARRAY_SIZE	10000000
+#define MAXTHREADS	8
 #define NITER		10
 
 KEY_T randints[NITER][MAX_ARRAY_SIZE+1];
@@ -279,7 +274,7 @@ testpqsort(int array_size, int nthread)
 	assert(nthread <= MAXTHREADS);
 	int iter;
 
-	gen_randints(array_size, 2);
+	gen_randints(array_size, 1);
 	uint64_t ts = bench_time();
 	for(iter = 0; iter < NITER; ++iter) {
 		pqsort_args arg = {
@@ -288,12 +283,15 @@ testpqsort(int array_size, int nthread)
 			.nth = nthread,
 			.cn = 1 };
 		pqsort(&arg);
+		if (!is_sorted(randints[iter], array_size)) {
+			printf("BAD");
+		}
 	}
 	uint64_t td = bench_time();
 	uint64_t tt = (td - ts);
 
-	long long t1 = (tt/NITER) / 1000000000;
-	long long t2 = (tt/NITER) % 1000000000;
+	long long t1 = (tt / NITER) / 1000000000;
+	long long t2 = (tt / NITER) % 1000000000;
 	printf("array_size: %d\tavg. time: %lld.%09lld\n", array_size, t1, t2);
 }
 
@@ -302,18 +300,16 @@ main()
 {
 	int nth;
 	for (nth = 1; nth <= MAXTHREADS; nth *= 2) {
-		Nth = nth;
 		printf("nthreads %d...\n", nth);
 		testpqsort(1000, nth);
-		testpqsort(2000, nth);
 		testpqsort(5000, nth);
 		testpqsort(10000, nth);
-		testpqsort(20000, nth);
 		testpqsort(50000, nth);
 		testpqsort(100000, nth);
-		testpqsort(200000, nth);
 		testpqsort(500000, nth);
 		testpqsort(1000000, nth);
+		testpqsort(5000000, nth);
+		testpqsort(10000000, nth);
 	}
 	return 0;
 }

@@ -1,7 +1,7 @@
 
 EVAL-OBJS := \
-			  qs.o \
 			  pqsort.o \
+			  lu.o \
 			  bcrack.o \
 			  matmult.o \
 			  merge.o

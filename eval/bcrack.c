@@ -27,7 +27,7 @@
 #define MINCHR		(' ')	// Minimum ASCII value a string may contain
 #define MAXCHR		('~')	// Maximum ASCII value a string may contain
 
-#define MAXTHREADS	16
+#define MAXTHREADS	8
 #define MAXLEN		10
 #define BLOCKLEN	3
 

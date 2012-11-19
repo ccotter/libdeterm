@@ -7,9 +7,9 @@
 
 #include "bench.h"
 
-#define MINDIM		1024
+#define MINDIM		16
 #define MAXDIM		1024
-#define MAXTHREADS	16
+#define MAXTHREADS	8
 
 /* Original author Bryan Ford <bryan.ford@yale.edu> for Determinator
  * http://github.com/bford/Determinator
