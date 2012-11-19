@@ -8,6 +8,12 @@
 
 #include "bench.h"
 
+/* LU decomposition algorithm from:
+ * http://www.cse.uiuc.edu/courses/cs554/notes/06_lu.pdf
+ *
+ * Use fine grained LU decomposition with n^2 threads.
+ */
+
 #define MINDIM 16
 #define MAXDIM 1024
 #define MAXTHREADS 32
@@ -159,7 +165,7 @@ void genmatrix(int seed)
 	for (i = 0; i < n; ++i) {
 		int j;
 		for (j = 0; j < n; ++j) {
-			VAL(A, i, j) = brand() % 100 + 100;
+			VAL(A, i, j) = brand() % 2000;
 		}
 	}
 }

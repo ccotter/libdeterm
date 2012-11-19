@@ -94,8 +94,6 @@ int main(int argc, char **argv)
 			assert(nth == nbi * nbj);
 			int niter = MAXDIM/dim;
 			niter = niter * niter; // * niter;	// MM = O(n^3)
-			if (niter>100)
-				niter/=16;
 
 			matmult(nbi, nbj, dim);	// once to warm up...
 
