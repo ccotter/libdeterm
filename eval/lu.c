@@ -42,7 +42,7 @@ pthread_mutex_t mutexes[MAXDIM][MAXDIM];
 int done[MAXDIM][MAXDIM];
 struct luargs args[MAXDIM][MAXDIM];
 
-mtype A[MAXDIM*MAXDIM], L[MAXDIM*MAXDIM];
+mtype A[MAXDIM*MAXDIM], L[MAXDIM*MAXDIM], A2[MAXDIM*MAXDIM];
 mtype x[MAXDIM], P[MAXDIM];
 int n;
 #define VAL(_a, _i, _j) (_a[_i * MAXDIM + _j])
@@ -56,11 +56,6 @@ static void swap_rows(int x, int y)
 	for (i = 0; i < n; ++i) {
 		SWAP(VAL(A, x, i), VAL(A, y, i));
 	}
-}
-
-void printd(int a,int b)
-{
-	fprintf(stderr, "done(%d,%d): [%d, %d, %d, %d]\n", a,b,done[0][0], done[0][1], done[1][0], done[1][1]);
 }
 
 static inline void waitthread(int i, int j)
@@ -95,41 +90,70 @@ void *lu(void *_arg)
 	int row1 = (_i + 1) * probsize;
 	int col1 = (_j + 1) * probsize;
 	int k;
-	//printf("(%d,%d): [%d,%d] [%d,%d]\n", _i,_j,row0,row1-1,col0,col1-1);
+	printf("(%d,%d): [%d,%d] [%d,%d]\n", _i,_j,row0,row1-1,col0,col1-1);
 
 	waitthread(_i-1,_j);
 	waitthread(_i,_j-1);
 
-	for (k = 0; k < min(_i, _j); ++k) {
-		//waitthread(k, _j);
-		//waitthread(_i, k);
-		int i, j;
-		for (i = row0; i < row1; ++i) {
-			for (j = col0; j < col1; ++j) {
-				int __i = i;
-				int __j = j;
-				//if (__i==3&&__j==3)
-				if (_i==1&&_j==1)
-					printf("AT IT (%d,%d) (%d,%d) (%d,%d)\n",_i,_j,__i,k,k,__j);
-				VAL(A, __i, __j) = VAL(A, __i, __j) -
-					VAL(L, __i, k) * VAL(A, k, __j);
-				//if (__i > __j)
-				//	VAL(L, __i, __j) = VAL(A, __i, __j) / VAL(A, __j, __j);
+	int i, j;
+	int QW,WQ;
+	QW=2;
+	WQ=2;
+	for (i = row0; i < row1; ++i) {
+		for (j = col0; j < col1; ++j) {
+			printf("A:%d %d\n", i,j);
+			for (k = 0; k < min(_i, _j); ++k) {
+				int l;
+				for (l = 0; l < probsize; ++l) {
+					int _k = k * probsize + l;
+			printf("  (%d,%d)use L:%d %d\n", i,j,i,_k);
+			printf("  (%d,%d)use A:%d %d\n", i,j,_k,j);
+					if (i==QW&&j==WQ)
+						printf("(%d,%d):%d-%d (%d,%d)=%.8f (%d,%d)=%.8f\n",
+								i,j,k,
+								probsize-row1+i,i,_k,VAL(L,i,_k),_k,j,VAL(A,_k,j));
+					VAL(A, i, j) = VAL(A, i, j) - VAL(L, i, _k) * VAL(A, _k, j);
+					if (i==QW&&j==WQ)
+						printf("  final=%.8f\n", VAL(A,i,j));
+				}
+			}
+			if (i==QW&&j==WQ)
+				printf("is %d\n", probsize-row1+i);
+			for (k = 0; k < probsize - row1 + i; ++k) {
+				int _k = k + row0;
+				printf("  use L:%d %d\n", i,_k);
+				printf("  use A:%d %d\n", _k,j);
+				if (i==QW&&j==WQ)
+					printf("o(%d,%d):%d-%d (%d,%d)=%.8f (%d,%d)=%.8f\n",
+							i,j,k,
+							probsize-row1+i,i,_k,VAL(L,i,_k),_k,j,VAL(A,_k,j));
+				VAL(A, i, j) = VAL(A, i, j) - VAL(L, i, _k) * VAL(A, _k, j);
+				if (i==QW&&j==WQ)
+					printf("  final=%.8f\n", VAL(A,i,j));
+			}
+			if (i > j) {
+#if 0
+				if (i==2&&j==1) {
+					printf("start\n");
+					print(A);
+					print(L);
+					printf("ok\n");
+				}
+#endif
+				printf("made L %d %d\n",i,j);
+				VAL(L, i, j) = VAL(A2, i, j) / VAL(A2, j, j);
 			}
 		}
 	}
-	if (_i > _j) {
-		//waitthread(_j, _j);
-		int i, j;
-		for (i = row0; i < row1; ++i) {
-			for (j = col0; j < col1; ++j) {
-				int __i = _i;
-				int __j = j;
-				//printf("L:(%d %d)\n", __i,__j);
-				VAL(L, __i, __j) = VAL(A, __i, __j) / VAL(A, __j, __j);
+#if 0
+	for (i = row0; i < row1; ++i) {
+		for (j = col0; j < col1; ++j) {
+			if (i > j) {
+				VAL(L, i, j) = VAL(A, i, j) / VAL(A, j, j);
 			}
 		}
 	}
+#endif
 	threaddone(_i, _j);
 	return NULL;
 }
@@ -184,7 +208,7 @@ void genmatrix(int seed)
 	for (i = 0; i < n; ++i) {
 		int j;
 		for (j = 0; j < n; ++j) {
-			VAL(A, i, j) = brand() % 100 + 100;
+			VAL(A2, i, j) = VAL(A, i, j) = brand() % 100 + 100;
 		}
 	}
 }
@@ -205,7 +229,7 @@ int main(void)
 	int i;
 	genmatrix(1);
 	print(A);
-	plu(2);
+	plu(MINDIM/2);
 	print(L);
 	printf("\n");
 	print(A);
