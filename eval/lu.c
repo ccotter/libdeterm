@@ -30,40 +30,22 @@
 typedef float mtype;
 struct luargs
 {
-	int i, j, partition;
+	int bi, bj;
+	int nbi, nbj;
 };
-
-#if 0
-int deps[MAXDIM][MAXDIM][MINDIM*MINDIM];
-static inline void adddep(int a, int b, int c, int d)
-{
-	deps[a][b][deps[a][b][0]++] = c * MAXDIM + d;
-}
-#endif
 
 void *lu(void*);
 
-pthread_t threads[MAXDIM][MAXDIM];
-pthread_cond_t conds[MAXDIM][MAXDIM];
-pthread_mutex_t mutexes[MAXDIM][MAXDIM];
-int done[MAXDIM][MAXDIM];
-struct luargs args[MAXDIM][MAXDIM];
+pthread_t threads[MAXTHREADS][MAXTHREADS];
+pthread_cond_t conds[MAXTHREADS][MAXTHREADS];
+pthread_mutex_t mutexes[MAXTHREADS][MAXTHREADS];
+int done[MAXTHREADS][MAXTHREADS];
+struct luargs args[MAXTHREADS][MAXTHREADS];
 
 mtype A[MAXDIM*MAXDIM], L[MAXDIM*MAXDIM];
-mtype x[MAXDIM], P[MAXDIM];
+mtype x[MAXDIM];
 int n;
 #define VAL(_a, _i, _j) (_a[_i * MAXDIM + _j])
-#define SWAP(x, y) do { mtype temp = (x); (x) = (y); (y) = temp;} while(0)
-
-static void swap_rows(int x, int y)
-{
-	int i;
-	if (x == y)
-		return;
-	for (i = 0; i < n; ++i) {
-		SWAP(VAL(A, x, i), VAL(A, y, i));
-	}
-}
 
 static inline void waitthread(int i, int j)
 {
@@ -88,21 +70,21 @@ static inline void threaddone(int i, int j)
 void *lu(void *_arg)
 {
 	struct luargs *args = _arg;
-	int partition = args->partition;
-	int probsize = n / partition;
-	int _i = args->i;
-	int _j = args->j;
-	int row0 = _i * probsize;
-	int col0 = _j * probsize;
-	int row1 = (_i + 1) * probsize;
-	int col1 = (_j + 1) * probsize;
-	int k;
+	int bi = args->bi;
+	int bj = args->bj;
+	int nbi = args->nbi;
+	int nbj = args->nbj;
+	int row0 = bi * n / nbi;
+	int col0 = bj * n / nbj;
+	int row1 = row0 + n / nbi;
+	int col1 = col0 + n / nbj;
 
-	waitthread(_i-1,_j);
-	waitthread(_i,_j-1);
+	waitthread(bi - 1, bj);
+	waitthread(bi, bj - 1);
 
-	int i, j;
+	int i;
 	for (i = row0; i < row1; ++i) {
+		int j;
 		for (j = col0; j < col1; ++j) {
 			int k;
 			for (k = 0; k < min(i, j); ++k) {
@@ -113,46 +95,47 @@ void *lu(void *_arg)
 			}
 		}
 	}
-	threaddone(_i, _j);
+	threaddone(bi, bj);
 	return NULL;
 }
 
-void plu(int partition)
+void plu(int nbi, int nbj)
 {
 	int i;
-	int probsize = n / partition;
-	for (i = 0; i < partition; ++i) {
+	for (i = 0; i < nbi; ++i) {
 		int j;
-		for (j = 0; j < partition; ++j) {
-			args[i][j].i = i;
-			args[i][j].j = j;
-			args[i][j].partition = partition;
+		for (j = 0; j < nbj; ++j) {
+			args[i][j].bi = i;
+			args[i][j].bj = j;
+			args[i][j].nbi = nbi;
+			args[i][j].nbj = nbj;
 			done[i][j] = 0;
 			pthread_mutex_init(&mutexes[i][j], NULL);
 			pthread_cond_init(&conds[i][j], NULL);
 			pthread_create(&threads[i][j], NULL, lu, &args[i][j]);
 		}
 	}
-	for (i = 0; i < partition; ++i) {
+	for (i = 0; i < nbi; ++i) {
 		int j;
-		for (j = 0; j < partition; ++j) {
+		for (j = 0; j < nbj; ++j) {
 			pthread_join(threads[i][j], NULL);
 		}
 	}
-	for (i = 0; i < partition; ++i) {
+	for (i = 0; i < nbi; ++i) {
 		int j;
-		for (j = 0; j < partition; ++j) {
+		for (j = 0; j < nbj; ++j) {
 			pthread_mutex_destroy(&mutexes[i][j]);
 			pthread_cond_destroy(&conds[i][j]);
 		}
 	}
+	/* Clear bottom of A (which is now U) and make L's diagonals 1s. */
 	for (i = 0; i < n; ++i) {
 		int j;
 		for (j = 0; j < n; ++j) {
-			if (i>j)
-				VAL(A,i,j)=0;
-			if(i==j)
-				VAL(L,i,i)=1;
+			if (i > j)
+				VAL(A,i,j) = 0;
+			if(i == j)
+				VAL(L,i,i) = 1;
 		}
 	}
 }
@@ -172,23 +155,45 @@ void genmatrix(int seed)
 
 int main(void)
 {
+	int nth, nbi, nbj, iter;
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
-		printf("Matrix size: %dx%d = %d (%ld bytes)\n", n, n, n * n,
-				n * n * sizeof(mtype));
-		int i;
-		for (i = 1; i <= n && i*i <= MAXTHREADS; i *= 2) {
-			genmatrix(1);
-			long tt = bench_time();
-			plu(i);
-			tt = bench_time() - tt;
-			int blksize = n / i;
-			printf("blksize %dx%d (nthreads=%d): %ld.%.9ld\n",
-					blksize, blksize, i * i,
-					tt / 1000000000,
-					tt % 1000000000);
+		printf("matrix size: %dx%d = %d (%d bytes)\n",
+			n, n, n*n, n*n*(int)sizeof(mtype));
+		for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
+			int niter = MAXDIM/n;
+			niter = niter * niter; // * niter;	// MM = O(n^3)
+			niter = 1;
+
+			//matmult(nbi, nbj, dim);	// once to warm up...
+
+			uint64_t ts = bench_time();
+			for (iter = 0; iter < niter; iter++)
+				plu(nbi, nbj);
+			uint64_t td = (bench_time() - ts) / niter;
+
+			printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
+				n/nbi, n/nbj, nth, niter,
+				(long long)td / 1000000000,
+				(long long)td % 1000000000);
+
+			if (nbi == nbj)
+				nbi *= 2;
+			else
+				nbj *= 2;
+			nth *= 2;
 		}
-		printf("\n");
 	}
 	return 0;
 }
 
+#define SWAP(x, y) do { mtype temp = (x); (x) = (y); (y) = temp;} while(0)
+
+static void swap_rows(int x, int y)
+{
+	int i;
+	if (x == y)
+		return;
+	for (i = 0; i < n; ++i) {
+		SWAP(VAL(A, x, i), VAL(A, y, i));
+	}
+}
