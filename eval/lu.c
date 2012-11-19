@@ -6,8 +6,11 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#define MINDIM 4
-#define MAXDIM MINDIM
+#include "bench.h"
+
+#define MINDIM 16
+#define MAXDIM 1024
+#define MAXTHREADS 32
 
 #define max(a,b) \
 	({ __typeof__ (a) _a = (a); \
@@ -18,7 +21,6 @@
 	 __typeof__ (b) _b = (b); \
 	 _a < _b ? _a : _b; })
 
-int NT;
 typedef float mtype;
 struct luargs
 {
@@ -33,7 +35,6 @@ static inline void adddep(int a, int b, int c, int d)
 }
 #endif
 
-static void print(mtype *arr);
 void *lu(void*);
 
 pthread_t threads[MAXDIM][MAXDIM];
@@ -42,7 +43,7 @@ pthread_mutex_t mutexes[MAXDIM][MAXDIM];
 int done[MAXDIM][MAXDIM];
 struct luargs args[MAXDIM][MAXDIM];
 
-mtype A[MAXDIM*MAXDIM], L[MAXDIM*MAXDIM], A2[MAXDIM*MAXDIM];
+mtype A[MAXDIM*MAXDIM], L[MAXDIM*MAXDIM];
 mtype x[MAXDIM], P[MAXDIM];
 int n;
 #define VAL(_a, _i, _j) (_a[_i * MAXDIM + _j])
@@ -90,70 +91,22 @@ void *lu(void *_arg)
 	int row1 = (_i + 1) * probsize;
 	int col1 = (_j + 1) * probsize;
 	int k;
-	printf("(%d,%d): [%d,%d] [%d,%d]\n", _i,_j,row0,row1-1,col0,col1-1);
 
 	waitthread(_i-1,_j);
 	waitthread(_i,_j-1);
 
 	int i, j;
-	int QW,WQ;
-	QW=2;
-	WQ=2;
 	for (i = row0; i < row1; ++i) {
 		for (j = col0; j < col1; ++j) {
-			printf("A:%d %d\n", i,j);
-			for (k = 0; k < min(_i, _j); ++k) {
-				int l;
-				for (l = 0; l < probsize; ++l) {
-					int _k = k * probsize + l;
-			printf("  (%d,%d)use L:%d %d\n", i,j,i,_k);
-			printf("  (%d,%d)use A:%d %d\n", i,j,_k,j);
-					if (i==QW&&j==WQ)
-						printf("(%d,%d):%d-%d (%d,%d)=%.8f (%d,%d)=%.8f\n",
-								i,j,k,
-								probsize-row1+i,i,_k,VAL(L,i,_k),_k,j,VAL(A,_k,j));
-					VAL(A, i, j) = VAL(A, i, j) - VAL(L, i, _k) * VAL(A, _k, j);
-					if (i==QW&&j==WQ)
-						printf("  final=%.8f\n", VAL(A,i,j));
-				}
+			int k;
+			for (k = 0; k < min(i, j); ++k) {
+				VAL(A, i, j) -= VAL(L, i, k) * VAL(A, k, j);
 			}
-			if (i==QW&&j==WQ)
-				printf("is %d\n", probsize-row1+i);
-			for (k = 0; k < probsize - row1 + i; ++k) {
-				int _k = k + row0;
-				printf("  use L:%d %d\n", i,_k);
-				printf("  use A:%d %d\n", _k,j);
-				if (i==QW&&j==WQ)
-					printf("o(%d,%d):%d-%d (%d,%d)=%.8f (%d,%d)=%.8f\n",
-							i,j,k,
-							probsize-row1+i,i,_k,VAL(L,i,_k),_k,j,VAL(A,_k,j));
-				VAL(A, i, j) = VAL(A, i, j) - VAL(L, i, _k) * VAL(A, _k, j);
-				if (i==QW&&j==WQ)
-					printf("  final=%.8f\n", VAL(A,i,j));
-			}
-			if (i > j) {
-#if 0
-				if (i==2&&j==1) {
-					printf("start\n");
-					print(A);
-					print(L);
-					printf("ok\n");
-				}
-#endif
-				printf("made L %d %d\n",i,j);
-				VAL(L, i, j) = VAL(A2, i, j) / VAL(A2, j, j);
-			}
-		}
-	}
-#if 0
-	for (i = row0; i < row1; ++i) {
-		for (j = col0; j < col1; ++j) {
 			if (i > j) {
 				VAL(L, i, j) = VAL(A, i, j) / VAL(A, j, j);
 			}
 		}
 	}
-#endif
 	threaddone(_i, _j);
 	return NULL;
 }
@@ -171,7 +124,6 @@ void plu(int partition)
 			done[i][j] = 0;
 			pthread_mutex_init(&mutexes[i][j], NULL);
 			pthread_cond_init(&conds[i][j], NULL);
-			++NT;
 			pthread_create(&threads[i][j], NULL, lu, &args[i][j]);
 		}
 	}
@@ -197,7 +149,6 @@ void plu(int partition)
 				VAL(L,i,i)=1;
 		}
 	}
-	printf("finished %d\n", partition);
 }
 
 #include "../inc/rng.h"
@@ -208,76 +159,30 @@ void genmatrix(int seed)
 	for (i = 0; i < n; ++i) {
 		int j;
 		for (j = 0; j < n; ++j) {
-			VAL(A2, i, j) = VAL(A, i, j) = brand() % 100 + 100;
+			VAL(A, i, j) = brand() % 100 + 100;
 		}
 	}
-}
-
-int intcmp(const void *_a, const void *_b)
-{
-	int a = *(int*)_a, b = *(int*)_b;
-	if (a<b)
-		return -1;
-	else if (a>b)
-		return 1;
-	return 0;
 }
 
 int main(void)
 {
-	n = MINDIM;
-	int i;
-	genmatrix(1);
-	print(A);
-	plu(MINDIM/2);
-	print(L);
-	printf("\n");
-	print(A);
-	printf("Created %d threads\n", NT);
-
-#if 0
-	for (i = 0; i < n; ++i) {
-		int j;
-		for (j = 0; j < n; ++j) {
-			int k;
-			for (k = 1; k < deps[i][j][0]; ++k) {
-				int a = deps[i][j][k] / MAXDIM;
-				int b = deps[i][j][k] % MAXDIM;
-				if (i!=a&&j!=b)
-					printf("oops");
-			}
-#if 0
-			qsort(&deps[i][j][1] , deps[i][j][0], sizeof(int), intcmp);
-			printf("(%d,%d): ", i, j);
-			for (k = 1; k < deps[i][j][0]; ++k) {
-				int Q = deps[i][j][k];
-				printf("(%d,%d) ", Q/MAXDIM,Q%MAXDIM);
-			}
-			printf("\n");
-#endif
-		}
-	}
-#endif
-	return 0;
-	for (i = 1; i <= n / 2; i *= 2) {
-		genmatrix(1);
-		plu(i);
-		print(A);
-	}
-	return 0;
-}
-
-static void print(mtype *arr)
-{
-	int i;
-	if (n>8)
-		return;
-	for (i = 0; i < n; ++i) {
-		int j;
-		for (j = 0; j < n; ++j) {
-			printf("%.8f ", VAL(arr, i, j));
+	for (n = MINDIM; n <= MAXDIM; n *= 2) {
+		printf("Matrix size: %dx%d = %d (%ld bytes)\n", n, n, n * n,
+				n * n * sizeof(mtype));
+		int i;
+		for (i = 1; i <= n && i*i <= MAXTHREADS; i *= 2) {
+			genmatrix(1);
+			long tt = bench_time();
+			plu(i);
+			tt = bench_time() - tt;
+			int blksize = n / i;
+			printf("blksize %dx%d (nthreads=%d): %ld.%.9ld\n",
+					blksize, blksize, i * i,
+					tt / 1000000000,
+					tt % 1000000000);
 		}
 		printf("\n");
 	}
+	return 0;
 }
 
