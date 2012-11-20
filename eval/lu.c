@@ -16,7 +16,7 @@
 
 #define MINDIM 4
 #define MAXDIM 1024
-#define MAXTHREADS 32
+#define MAXTHREADS 256
 
 #define max(a,b) \
 	({ __typeof__ (a) _a = (a); \
@@ -150,6 +150,8 @@ void *lu(void *_arg)
 	return NULL;
 }
 
+
+
 void plu(int nbi, int nbj)
 {
 	int i;
@@ -210,9 +212,14 @@ int main(void)
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			n, n, n*n, n*n*(int)sizeof(mtype));
-		for (nth = nbi = nbj = 1; nth <= MAXTHREADS && n >= nbi && n > nbj; ) {
+		for (nth = 1, nbi = nbj = 1; nth <= MAXTHREADS; ) {
 			int niter = MAXDIM/n;
 			genmatrix(1);
+
+			if (n < nbi || n < nbj)
+				break;
+			//if (n / nbi < 4 || n / nbj < 4)
+			//	break;
 
 			plu(nbi, nbj);
 
@@ -228,7 +235,7 @@ int main(void)
 			}
 			uint64_t td = (bench_time() - ts) / niter;
 
-			printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
+			printf("blksize %dx%d thr %4d itr %d: %lld.%09lld\n",
 				n/nbi, n/nbj, nth, niter,
 				(long long)td / 1000000000,
 				(long long)td % 1000000000);
