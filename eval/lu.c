@@ -14,7 +14,7 @@
  * Use fine grained LU decomposition with n^2 threads.
  */
 
-#define MINDIM 16
+#define MINDIM 4
 #define MAXDIM 1024
 #define MAXTHREADS 32
 
@@ -27,7 +27,7 @@
 	 __typeof__ (b) _b = (b); \
 	 _a < _b ? _a : _b; })
 
-typedef float mtype;
+typedef long double mtype;
 struct luargs
 {
 	int bi, bj;
@@ -42,10 +42,61 @@ pthread_mutex_t mutexes[MAXTHREADS][MAXTHREADS];
 int done[MAXTHREADS][MAXTHREADS];
 struct luargs args[MAXTHREADS][MAXTHREADS];
 
-mtype A[MAXDIM*MAXDIM], L[MAXDIM*MAXDIM];
+mtype A[MAXDIM*MAXDIM], Orig[MAXDIM*MAXDIM],
+	  L[MAXDIM*MAXDIM], R[MAXDIM*MAXDIM];
 mtype x[MAXDIM];
 int n;
 #define VAL(_a, _i, _j) (_a[_i * MAXDIM + _j])
+
+static void print(mtype *arr)
+{
+	int i;
+	for (i = 0; i < n; ++i) {
+		int j;
+		for (j = 0; j < n; ++j) {
+			printf("%.8Lf ", VAL(arr, i, j));
+		}
+		printf("\n");
+	}
+}
+
+/* Multiply R = L*A */
+static void matmult()
+{
+	int i,j,k;
+	memset(R, 0, sizeof(R));
+	for (i = 0; i < n; ++i) {
+		for (j = 0; j < n; ++j) {
+			for (k = 0; k < n; ++k) {
+				VAL(R, i, j) += VAL(L, i, k) * VAL(A, k, j);
+			}
+		}
+	}
+}
+
+#define EPS .000000001L
+static void check(mtype *a, mtype *b)
+{
+	int i;
+	for (i = 0; i < n; ++i) {
+		int j;
+		for (j = 0; j < n; ++j) {
+			if (fabs(VAL(a, i, j) - VAL(b, i, j)) > EPS) {
+				printf("Not correct %d %d\n", i, j);
+				printf("%Lf %Lf\n", VAL(a,i,j), VAL(b,i,j));
+				print(R);
+				printf("\n");
+				print(Orig);
+				printf("\n");
+				print(L);
+				printf("\n");
+				print(A);
+				printf("\n");
+				exit(1);
+			}
+		}
+	}
+}
 
 static inline void waitthread(int i, int j)
 {
@@ -148,7 +199,7 @@ void genmatrix(int seed)
 	for (i = 0; i < n; ++i) {
 		int j;
 		for (j = 0; j < n; ++j) {
-			VAL(A, i, j) = brand() % 2000;
+			VAL(Orig, i, j) = VAL(A, i, j) = brand() % 2000;
 		}
 	}
 }
@@ -159,16 +210,22 @@ int main(void)
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			n, n, n*n, n*n*(int)sizeof(mtype));
-		for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
+		for (nth = nbi = nbj = 1; nth <= MAXTHREADS && n >= nbi && n > nbj; ) {
 			int niter = MAXDIM/n;
-			niter = niter * niter; // * niter;	// MM = O(n^3)
-			niter = 1;
+			genmatrix(1);
 
-			//matmult(nbi, nbj, dim);	// once to warm up...
+			plu(nbi, nbj);
 
 			uint64_t ts = bench_time();
-			for (iter = 0; iter < niter; iter++)
+			for (iter = 0; iter < niter; iter++) {
+				memcpy(Orig, A, sizeof(A));
 				plu(nbi, nbj);
+#if 0
+				/* Ensure correctness. */
+				matmult();
+				check(Orig, R);
+#endif
+			}
 			uint64_t td = (bench_time() - ts) / niter;
 
 			printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
