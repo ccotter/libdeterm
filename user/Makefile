@@ -11,6 +11,7 @@ USER-OBJS := \
 			  matmult.o \
 			  pqsort.o \
 			  merge_sort.o \
+			  lu.o \
 			  rand.o \
 			  zero.o \
 			  grand.o \

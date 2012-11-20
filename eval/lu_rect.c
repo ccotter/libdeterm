@@ -209,19 +209,6 @@ void genmatrix(int seed)
 int main(void)
 {
 	int nth, nbi, nbj, iter;
-	n = 4;
-	genmatrix(1);
-	plu(2,2);
-	matmult();
-				print(R);
-				printf("\n");
-				print(Orig);
-				printf("\n");
-				print(L);
-				printf("\n");
-				print(A);
-				printf("\n");
-				exit(1);
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			n, n, n*n, n*n*(int)sizeof(mtype));

@@ -5,9 +5,8 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
-
 #include <determinism.h>
-#include "bench.h"
+#include <bench.h>
 
 /* Quicksort benchmark from Determinator.
  * Original credit to PIOS:

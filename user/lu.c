@@ -1,12 +1,9 @@
 
-#include <unistd.h>
 #include <string.h>
-#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pthread.h>
-
-#include "bench.h"
+#include <determinism.h>
+#include <bench.h>
 
 /* LU decomposition algorithm from:
  * http://www.cse.uiuc.edu/courses/cs554/notes/06_lu.pdf
@@ -36,10 +33,6 @@ struct luargs
 
 void *lu(void*);
 
-pthread_t threads[MAXTHREADS][MAXTHREADS];
-pthread_cond_t conds[MAXTHREADS][MAXTHREADS];
-pthread_mutex_t mutexes[MAXTHREADS][MAXTHREADS];
-int done[MAXTHREADS][MAXTHREADS];
 struct luargs args[MAXTHREADS][MAXTHREADS];
 
 mtype A[MAXDIM*MAXDIM], Orig[MAXDIM*MAXDIM],
@@ -48,16 +41,36 @@ mtype x[MAXDIM];
 int n;
 #define VAL(_a, _i, _j) (_a[_i * MAXDIM + _j])
 
+static inline long abs(long a)
+{
+	return a > 0 ? a : -a;
+}
+static inline long double fabs(long double a)
+{
+	return a > 0 ? a : -a;
+}
 static void print(mtype *arr)
 {
 	int i;
 	for (i = 0; i < n; ++i) {
 		int j;
 		for (j = 0; j < n; ++j) {
-			printf("%.8Lf ", VAL(arr, i, j));
+			long l = (long)(VAL(arr, i, j) * 1000000000);
+			if (l<0)
+				printf("-");
+			l=abs(l);
+			printf("%ld.%08ld ", l / 1000000000, l % 1000000000);
 		}
 		printf("\n");
 	}
+}
+
+static void printl(mtype a)
+{
+	long l = (long)(a * 1000000000);
+	printf("%ld.%09ld",
+			l / 1000000000,
+			l % 1000000000);
 }
 
 /* Multiply R = L*A */
@@ -83,7 +96,11 @@ static void check(mtype *a, mtype *b)
 		for (j = 0; j < n; ++j) {
 			if (fabs(VAL(a, i, j) - VAL(b, i, j)) > EPS) {
 				printf("Not correct %d %d\n", i, j);
-				printf("%Lf %Lf\n", VAL(a,i,j), VAL(b,i,j));
+				long l1 = VAL(a,i,j) * 1000000000;
+				long l2 = VAL(b,i,j) * 1000000000;
+				printf("%ld.%08ld %ld.%08ld\n",
+						l1 / 1000000000, l1 % 1000000000,
+						l2 / 1000000000, l2 % 1000000000);
 				print(R);
 				printf("\n");
 				print(Orig);
@@ -96,25 +113,6 @@ static void check(mtype *a, mtype *b)
 			}
 		}
 	}
-}
-
-static inline void waitthread(int i, int j)
-{
-	if (i < 0 || j < 0)
-		return;
-	pthread_mutex_lock(&mutexes[i][j]);
-	while (!done[i][j]) {
-		pthread_cond_wait(&conds[i][j], &mutexes[i][j]);
-	}
-	pthread_mutex_unlock(&mutexes[i][j]);
-}
-
-static inline void threaddone(int i, int j)
-{
-	pthread_mutex_lock(&mutexes[i][j]);
-	done[i][j] = 1;
-	pthread_mutex_unlock(&mutexes[i][j]);
-	pthread_cond_broadcast(&conds[i][j]);
 }
 
 /* Serial LU decomposition. */
@@ -130,9 +128,6 @@ void *lu(void *_arg)
 	int row1 = row0 + n / nbi;
 	int col1 = col0 + n / nbj;
 
-	waitthread(bi - 1, bj);
-	waitthread(bi, bj - 1);
-
 	int i;
 	for (i = row0; i < row1; ++i) {
 		int j;
@@ -142,48 +137,69 @@ void *lu(void *_arg)
 				VAL(A, i, j) -= VAL(L, i, k) * VAL(A, k, j);
 			}
 			if (i > j) {
+				if (i == 1 && j == 0&&0) {
+					printf("Vals are ");
+					printl(VAL(L, i, j));
+					printf(" ");
+					printl(VAL(A, i, j));
+					printf(" ");
+					printl(VAL(A, j, j));
+					printf(" - ");/**/
+				}
 				VAL(L, i, j) = VAL(A, i, j) / VAL(A, j, j);
+				if (i == 1 && j == 0&&0) {
+					printl(VAL(L, i, j));
+					printf("\n");/**/
+				}
 			}
 		}
 	}
-	threaddone(bi, bj);
 	return NULL;
 }
 
-
-
 void plu(int nbi, int nbj)
 {
-	int i;
+	int i, j;
 	for (i = 0; i < nbi; ++i) {
-		int j;
 		for (j = 0; j < nbj; ++j) {
 			args[i][j].bi = i;
 			args[i][j].bj = j;
 			args[i][j].nbi = nbi;
 			args[i][j].nbj = nbj;
-			done[i][j] = 0;
-			pthread_mutex_init(&mutexes[i][j], NULL);
-			pthread_cond_init(&conds[i][j], NULL);
-			pthread_create(&threads[i][j], NULL, lu, &args[i][j]);
 		}
 	}
-	for (i = 0; i < nbi; ++i) {
-		int j;
+	/* Start the first row. */
+	for (i = j = 0; j < nbj; ++j) {
+		printf("Forked (%d,%d)\n", i, j);
+		bench_fork(i * n + j, lu, &args[i][j]);
+	}
+	while (i < nbi) {
 		for (j = 0; j < nbj; ++j) {
-			pthread_join(threads[i][j], NULL);
+			printf(" join on (%d,%d)\n", i, j);
+			bench_join(i * n + j);
+			/* Start the next threads: remaining n-1 threads on the currrent row
+			 * and 1 thread on the next row. */
+			if (!j && i) {
+				int k;
+				for (k = 1; k < nbj; ++k) {
+					printf("Forke2 (%d,%d)\n", i, k);
+					bench_fork(i * n + k, lu, &args[i][k]);
+				}
+			}
+			if (!j && i + 1 < nbi) {
+				printf("Forke3 (%d,%d)\n", i+1, 0);
+				bench_fork((i+1) * n, lu, &args[i+1][0]);
+			}
 		}
+		++i;
 	}
-	for (i = 0; i < nbi; ++i) {
-		int j;
-		for (j = 0; j < nbj; ++j) {
-			pthread_mutex_destroy(&mutexes[i][j]);
-			pthread_cond_destroy(&conds[i][j]);
-		}
-	}
+	/* Join last row threads. */
+	/*for (i = nbi - 1, j = 1; j < nbj; ++j) {
+		printf(" join on (%d,%d)\n", i, j);
+		bench_join(i * n + j);
+	}*/
 	/* Clear bottom of A (which is now U) and make L's diagonals 1s. */
 	for (i = 0; i < n; ++i) {
-		int j;
 		for (j = 0; j < n; ++j) {
 			if (i > j)
 				VAL(A,i,j) = 0;
@@ -212,21 +228,15 @@ int main(void)
 	n = 4;
 	genmatrix(1);
 	plu(2,2);
-	matmult();
-				print(R);
-				printf("\n");
-				print(Orig);
-				printf("\n");
-				print(L);
-				printf("\n");
-				print(A);
-				printf("\n");
-				exit(1);
+				matmult();
+				check(Orig, R);
+	exit(1);
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			n, n, n*n, n*n*(int)sizeof(mtype));
 		for (nth = 1, nbi = nbj = 1; nth <= MAXTHREADS; ) {
 			int niter = MAXDIM/n;
+			niter = 1;
 			genmatrix(1);
 
 			if (n < nbi || n < nbj)
@@ -240,9 +250,10 @@ int main(void)
 			for (iter = 0; iter < niter; iter++) {
 				memcpy(Orig, A, sizeof(A));
 				plu(nbi, nbj);
-#if 0
+#if 1
 				/* Ensure correctness. */
 				matmult();
+				printf("Check %d %d\n",nbi,nbj);
 				check(Orig, R);
 #endif
 			}
