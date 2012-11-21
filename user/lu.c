@@ -11,8 +11,8 @@
  * Use fine grained LU decomposition with n^2 threads.
  */
 
-#define MINDIM 4
-#define MAXDIM 1024
+#define MINDIM 16
+#define MAXDIM 2048
 #define MAXTHREADS 256
 
 #define max(a,b) \
@@ -34,6 +34,10 @@ struct luargs
 void *lu(void*);
 
 struct luargs args[MAXTHREADS][MAXTHREADS];
+int status[MAXTHREADS][MAXTHREADS];
+#define NOTRUN 0
+#define RUNNING 1
+#define DONE 2
 
 mtype A[MAXDIM*MAXDIM], Orig[MAXDIM*MAXDIM],
 	  L[MAXDIM*MAXDIM], R[MAXDIM*MAXDIM];
@@ -137,24 +141,24 @@ void *lu(void *_arg)
 				VAL(A, i, j) -= VAL(L, i, k) * VAL(A, k, j);
 			}
 			if (i > j) {
-				if (i == 1 && j == 0&&0) {
-					printf("Vals are ");
-					printl(VAL(L, i, j));
-					printf(" ");
-					printl(VAL(A, i, j));
-					printf(" ");
-					printl(VAL(A, j, j));
-					printf(" - ");/**/
-				}
 				VAL(L, i, j) = VAL(A, i, j) / VAL(A, j, j);
-				if (i == 1 && j == 0&&0) {
-					printl(VAL(L, i, j));
-					printf("\n");/**/
-				}
 			}
 		}
 	}
 	return NULL;
+}
+
+int alldone(int nbi, int nbj)
+{
+	int i;
+	for (i = 0; i < nbi; ++i) {
+		int j;
+		for (j = 0; j < nbj; ++j) {
+			if (!status[i][j])
+				return 0;
+		}
+	}
+	return 1;
 }
 
 void plu(int nbi, int nbj)
@@ -168,6 +172,8 @@ void plu(int nbi, int nbj)
 			args[i][j].nbj = nbj;
 		}
 	}
+#if 0
+	// This stategy fails - incorrect synchronization order. */
 	/* Start the first row. */
 	for (i = j = 0; j < nbj; ++j) {
 		printf("Forked (%d,%d)\n", i, j);
@@ -198,6 +204,80 @@ void plu(int nbi, int nbj)
 		printf(" join on (%d,%d)\n", i, j);
 		bench_join(i * n + j);
 	}*/
+#endif
+#define USE_FORK 1
+#define RBOUNDS(__x) (0 <= (__x) && (__x) < nbi)
+#define CBOUNDS(__x) (0 <= (__x) && (__x) < nbj)
+#define READY(_x, _y) ( \
+		(!RBOUNDS((_x)-1) || DONE == status[(_x)-1][(_y)]) && \
+		(!CBOUNDS((_y)-1) || DONE == status[(_x)][(_y)-1]))
+	memset(status, 0, sizeof(status));
+
+#if 1
+	while (!alldone(nbi, nbj)) {
+		for (i = 0; i < nbi; ++i) {
+			for (j = 0; j < nbj; ++j) {
+				if (!READY(i, j) || DONE == status[i][j])
+					continue;
+				status[i][j] = RUNNING;
+#if USE_FORK
+				bench_fork(nbj * i + j, lu, &args[i][j]);
+#else
+				if (!dput(nbj * i + j, DET_START, 0, 0, 0)) {
+					lu(&args[i][j]);
+					dret();
+				}
+#endif
+			}
+		}
+		//for (i = nbi - 1; i >= 0; ++i) {
+		//	for (j = nbj - 1; j >= 0; --j) {
+		for (i = 0; i < nbi; ++i) {
+			for (j = 0; j < nbj; ++j) {
+				if (RUNNING != status[i][j])
+					continue;
+				long addrA = (long)A;
+				long addrL = (long)L;
+				long row1 = n * (i+1) / nbi-1;
+				long col1 = n * (j+1) / nbj-1;
+				long size = &VAL(A, row1, col1) - &VAL(A, 0, 0)+1;
+				size *= sizeof(mtype);
+#if USE_FORK
+				bench_join(nbj * i + j);
+#else
+				dget(nbj * i + j, DET_VM_COPY, addrA, size, addrA);
+				dget(nbj * i + j, DET_VM_COPY, addrL, size, addrL);
+				dput(nbj * i + j, DET_KILL, 0, 0, 0);
+#endif
+				status[i][j] = DONE;
+			}
+		}
+	}
+#endif
+#if 0
+outer:
+	while (!alldone(nbi, nbj)) {
+		/* Create all that we can. */
+		for (i = 0; i < nbi; ++i) {
+			for (j = 0; j < nbj; ++j) {
+				if (!READY(i, j) || NOTRUN != status[i][j])
+					continue;
+				status[i][j] = RUNNING;
+				bench_fork(nbj * i + j, lu, &args[i][j]);
+			}
+		}
+		/* Join on next thread, then continue outer loop. */
+		for (i = 0; i < nbi; ++i) {
+			for (j = 0; j < nbj; ++j) {
+				if (RUNNING != status[i][j])
+					continue;
+				bench_join(nbj * i + j);
+				status[i][j] = DONE;
+				goto outer;
+			}
+		}
+	}
+#endif
 	/* Clear bottom of A (which is now U) and make L's diagonals 1s. */
 	for (i = 0; i < n; ++i) {
 		for (j = 0; j < n; ++j) {
@@ -224,33 +304,69 @@ void genmatrix(int seed)
 
 int main(void)
 {
+	int counter = 0;
+	for (n = MINDIM; n <= MAXDIM; n *= 2) {
+		printf("matrix size: %dx%d = %d (%d bytes)\n",
+			n, n, n*n, n*n*(int)sizeof(mtype));
+		int iter, niter = MAXDIM/n;
+		genmatrix(counter);
+
+		int nbi = n / 16, nbj = n / 16;
+		if (!nbi)
+			nbi = nbj = 1;
+
+		uint64_t td = 0;
+		for (iter = 0; iter < niter; iter++) {
+			memcpy(Orig, A, sizeof(A));
+			uint64_t ts = bench_time();
+			plu(nbi, nbj);
+			td += bench_time() - ts;
+#if 0
+			/* Ensure correctness. */
+			matmult();
+			check(Orig, R);
+#endif
+		}
+		td /= niter;
+
+		printf("  blksize %dx%d itr %d: %lld.%09lld\n",
+				n/nbi, n/nbj, niter,
+				(long long)td / 1000000000,
+				(long long)td % 1000000000);
+	}
+
+	return 0;
+}
+
+int main1(void)
+{
 	int nth, nbi, nbj, iter;
+#if 0
 	n = 4;
 	genmatrix(1);
-	plu(2,2);
+	plu(4,4);
 				matmult();
 				check(Orig, R);
 	exit(1);
+#endif
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			n, n, n*n, n*n*(int)sizeof(mtype));
 		for (nth = 1, nbi = nbj = 1; nth <= MAXTHREADS; ) {
 			int niter = MAXDIM/n;
-			niter = 1;
 			genmatrix(1);
 
 			if (n < nbi || n < nbj)
 				break;
-			//if (n / nbi < 4 || n / nbj < 4)
-			//	break;
 
-			plu(nbi, nbj);
+			/* Ok, we actually only do ... */
+			//nbi = nbj = 16;
 
 			uint64_t ts = bench_time();
 			for (iter = 0; iter < niter; iter++) {
 				memcpy(Orig, A, sizeof(A));
 				plu(nbi, nbj);
-#if 1
+#if 0
 				/* Ensure correctness. */
 				matmult();
 				printf("Check %d %d\n",nbi,nbj);

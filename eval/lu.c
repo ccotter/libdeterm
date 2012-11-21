@@ -14,8 +14,8 @@
  * Use fine grained LU decomposition with n^2 threads.
  */
 
-#define MINDIM 4
-#define MAXDIM 1024
+#define MINDIM 16
+#define MAXDIM 2048
 #define MAXTHREADS 256
 
 #define max(a,b) \
@@ -208,20 +208,43 @@ void genmatrix(int seed)
 
 int main(void)
 {
+	int counter = 0;
+	for (n = MINDIM; n <= MAXDIM; n *= 2) {
+		printf("matrix size: %dx%d = %d (%d bytes)\n",
+			n, n, n*n, n*n*(int)sizeof(mtype));
+		int iter, niter = MAXDIM/n;
+		genmatrix(counter);
+
+		int nbi = n / 16, nbj = n / 16;
+		if (!nbi)
+			nbi = nbj = 1;
+
+		uint64_t td = 0;
+		for (iter = 0; iter < niter; iter++) {
+			memcpy(Orig, A, sizeof(A));
+			uint64_t ts = bench_time();
+			plu(nbi, nbj);
+			td += bench_time() - ts;
+#if 0
+			/* Ensure correctness. */
+			matmult();
+			check(Orig, R);
+#endif
+		}
+		td /= niter;
+
+		printf("  blksize %dx%d itr %d: %lld.%09lld\n",
+				n/nbi, n/nbj, niter,
+				(long long)td / 1000000000,
+				(long long)td % 1000000000);
+	}
+
+	return 0;
+}
+
+int main1(void)
+{
 	int nth, nbi, nbj, iter;
-	n = 4;
-	genmatrix(1);
-	plu(2,2);
-	matmult();
-				print(R);
-				printf("\n");
-				print(Orig);
-				printf("\n");
-				print(L);
-				printf("\n");
-				print(A);
-				printf("\n");
-				exit(1);
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			n, n, n*n, n*n*(int)sizeof(mtype));
@@ -231,10 +254,6 @@ int main(void)
 
 			if (n < nbi || n < nbj)
 				break;
-			//if (n / nbi < 4 || n / nbj < 4)
-			//	break;
-
-			plu(nbi, nbj);
 
 			uint64_t ts = bench_time();
 			for (iter = 0; iter < niter; iter++) {
