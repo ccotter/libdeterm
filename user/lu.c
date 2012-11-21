@@ -35,6 +35,7 @@ void *lu(void*);
 
 struct luargs args[MAXTHREADS][MAXTHREADS];
 int status[MAXTHREADS][MAXTHREADS];
+uint64_t times[MAXTHREADS][MAXTHREADS];
 #define NOTRUN 0
 #define RUNNING 1
 #define DONE 2
@@ -131,6 +132,7 @@ void *lu(void *_arg)
 	int col0 = bj * n / nbj;
 	int row1 = row0 + n / nbi;
 	int col1 = col0 + n / nbj;
+	times[bi][bj] = bench_time();
 
 	int i;
 	for (i = row0; i < row1; ++i) {
@@ -145,6 +147,7 @@ void *lu(void *_arg)
 			}
 		}
 	}
+	times[bi][bj] = bench_time() - times[bi][bj];
 	return NULL;
 }
 
@@ -161,6 +164,7 @@ int alldone(int nbi, int nbj)
 	return 1;
 }
 
+uint64_t tm,tt;
 void plu(int nbi, int nbj)
 {
 	int i, j;
@@ -212,7 +216,8 @@ void plu(int nbi, int nbj)
 		(!RBOUNDS((_x)-1) || DONE == status[(_x)-1][(_y)]) && \
 		(!CBOUNDS((_y)-1) || DONE == status[(_x)][(_y)-1]))
 	memset(status, 0, sizeof(status));
-
+	memset(times, 0, sizeof(times));
+	tm = tt = 0;
 #if 1
 	while (!alldone(nbi, nbj)) {
 		for (i = 0; i < nbi; ++i) {
@@ -243,12 +248,16 @@ void plu(int nbi, int nbj)
 				long size = &VAL(A, row1, col1) - &VAL(A, 0, 0)+1;
 				size *= sizeof(mtype);
 #if USE_FORK
+				dget(nbj * i + j, 0, 0, 0, 0);
+				uint64_t ts = bench_time();
 				bench_join(nbj * i + j);
+				tm += bench_time() - ts;
 #else
 				dget(nbj * i + j, DET_VM_COPY, addrA, size, addrA);
 				dget(nbj * i + j, DET_VM_COPY, addrL, size, addrL);
 				dput(nbj * i + j, DET_KILL, 0, 0, 0);
 #endif
+				tt += times[i][j];
 				status[i][j] = DONE;
 			}
 		}
@@ -304,12 +313,27 @@ void genmatrix(int seed)
 
 int main(void)
 {
+	n = 1024;
+	genmatrix(1);
+	uint64_t ts = bench_time();
+	plu(n/16,n/16);
+	ts = bench_time() - ts;
+	printf("In MERGE: %ld.%09ld\n",
+			tm/1000000000,
+			tm%1000000000);
+	printf("Doing work: %ld.%09ld\n",
+			tt/1000000000,
+			tt%1000000000);
+	printf("Overall: %ld.%09ld\n",
+			ts/1000000000,
+			ts%1000000000);
+	exit(0);
 	int counter = 0;
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			n, n, n*n, n*n*(int)sizeof(mtype));
 		int iter, niter = MAXDIM/n;
-		genmatrix(counter);
+		genmatrix(counter++);
 
 		int nbi = n / 16, nbj = n / 16;
 		if (!nbi)

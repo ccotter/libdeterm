@@ -2,6 +2,7 @@
 EVAL-OBJS := \
 			  pqsort.o \
 			  lu.o \
+			  lu_cont.o \
 			  bcrack.o \
 			  matmult.o \
 			  merge.o
