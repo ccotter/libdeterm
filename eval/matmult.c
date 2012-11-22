@@ -121,10 +121,10 @@ int main1(int argc, char **argv)
 int main(int argc, char **argv)
 {
 
+	int counter = 0;
 	int dim, nth, nbi, nbj, iter;
 	nbi = nbj = 16;
 	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
-		genmatrix(dim);
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
 		//for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
@@ -136,10 +136,14 @@ int main(int argc, char **argv)
 
 			//matmult(nbi, nbj, dim);	// once to warm up...
 
-			uint64_t ts = bench_time();
-			for (iter = 0; iter < niter; iter++)
+			uint64_t td = 0;
+			for (iter = 0; iter < niter; iter++) {
+				genmatrix(counter++);
+				uint64_t ts = bench_time();
 				matmult(nbi, nbj, dim);
-			uint64_t td = (bench_time() - ts) / niter;
+				td += bench_time() - ts;
+			}
+			td /= niter;
 
 			printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
 				dim/nbi, dim/nbj, nth, niter,

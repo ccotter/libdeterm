@@ -245,18 +245,18 @@ void plu(int nbi, int nbj)
 			for (j = 0; j < nbj; ++j) {
 				if (RUNNING != status[i][j])
 					continue;
-				long addrA = (long)A;
-				long addrL = (long)L;
-				long row1 = n * (i+1) / nbi-1;
-				long col1 = n * (j+1) / nbj-1;
-				long size = &VAL(A, row1, col1) - &VAL(A, 0, 0)+1;
-				size *= sizeof(mtype);
 #if USE_FORK
 				dget(nbj * i + j, 0, 0, 0, 0);
 				uint64_t ts = bench_time();
 				bench_join(nbj * i + j);
 				tm += bench_time() - ts;
 #else
+				long addrA = (long)A;
+				long addrL = (long)L;
+				long row1 = n * (i+1) / nbi-1;
+				long col1 = n * (j+1) / nbj-1;
+				long size = &VAL(A, row1, col1) - &VAL(A, 0, 0)+1;
+				size *= sizeof(mtype);
 				dget(nbj * i + j, DET_VM_COPY, addrA, size, addrA);
 				dget(nbj * i + j, DET_VM_COPY, addrL, size, addrL);
 				dput(nbj * i + j, DET_KILL, 0, 0, 0);
