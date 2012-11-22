@@ -217,7 +217,6 @@ void plu(int nbi, int nbj)
 		(!CBOUNDS((_y)-1) || DONE == status[(_x)][(_y)-1]))
 	memset(status, 0, sizeof(status));
 	memset(times, 0, sizeof(times));
-	tm = tt = 0;
 #if 1
 	while (!alldone(nbi, nbj)) {
 		for (i = 0; i < nbi; ++i) {
@@ -311,8 +310,22 @@ void genmatrix(int seed)
 	}
 }
 
-int main(void)
+static void usage(char **argv)
 {
+	printf("usage: %s N\n", argv[0]);
+	printf("Runs LU decomposition with block size of NxN (N must be a "
+			"power of 2)\n");
+	exit(1);
+}
+
+int main(int argc, char **argv)
+{
+	if (2 != argc)
+		usage(argv);
+	int blocksize = strtol(argv[1], NULL, 10);
+	if (blocksize <= 0 || blocksize != (blocksize & -blocksize))
+		usage(argv);
+#if 0
 	n = 1024;
 	genmatrix(1);
 	uint64_t ts = bench_time();
@@ -328,6 +341,7 @@ int main(void)
 			ts/1000000000,
 			ts%1000000000);
 	exit(0);
+#endif
 	int counter = 0;
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
@@ -335,11 +349,12 @@ int main(void)
 		int iter, niter = MAXDIM/n;
 		genmatrix(counter++);
 
-		int nbi = n / 16, nbj = n / 16;
+		int nbi = n / blocksize, nbj = n / blocksize;
 		if (!nbi)
 			nbi = nbj = 1;
 
 		uint64_t td = 0;
+		tt = tm = 0;
 		for (iter = 0; iter < niter; iter++) {
 			memcpy(Orig, A, sizeof(A));
 			uint64_t ts = bench_time();
@@ -352,11 +367,15 @@ int main(void)
 #endif
 		}
 		td /= niter;
+		tm /= niter;
 
 		printf("  blksize %dx%d itr %d: %lld.%09lld\n",
 				n/nbi, n/nbj, niter,
 				(long long)td / 1000000000,
 				(long long)td % 1000000000);
+		printf("  time in MERGE: %ld.%09ld\n",
+				(long long)tm / 1000000000,
+				(long long)tm % 1000000000);
 	}
 
 	return 0;

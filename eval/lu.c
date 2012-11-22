@@ -206,16 +206,29 @@ void genmatrix(int seed)
 	}
 }
 
-int main(void)
+static void usage(char **argv)
 {
+	printf("usage: %s N\n", argv[0]);
+	printf("Runs LU decomposition with block size of NxN (N must be a "
+			"power of 2)\n");
+	exit(1);
+}
+
+int main(int argc, char **argv)
+{
+	if (2 != argc)
+		usage(argv);
+	int blocksize = strtol(argv[1], NULL, 10);
+	if (blocksize <= 0 || blocksize != (blocksize & -blocksize))
+		usage(argv);
 	int counter = 0;
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			n, n, n*n, n*n*(int)sizeof(mtype));
 		int iter, niter = MAXDIM/n;
-		genmatrix(counter);
+		genmatrix(counter++);
 
-		int nbi = n / 16, nbj = n / 16;
+		int nbi = n / blocksize, nbj = n / blocksize;
 		if (!nbi)
 			nbi = nbj = 1;
 
