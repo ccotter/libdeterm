@@ -8,7 +8,7 @@
 
 #define MINDIM		16
 #define MAXDIM		1024
-#define MAXTHREADS	16
+#define MAXTHREADS	256
 
 /* Original author Bryan Ford <bryan.ford@yale.edu> for Determinator
  * http://github.com/bford/Determinator
@@ -23,6 +23,17 @@ elt a[MAXDIM*MAXDIM], b[MAXDIM*MAXDIM], r[MAXDIM*MAXDIM];
 struct tharg {
 	int bi, bj, nbi, nbj, dim;
 };
+
+void printm(elt *m, int n)
+{
+	int i, j;
+	for (i = 0; i < n; ++i) {
+		for (j = 0; j < n; ++j) {
+			printf("%d ", m[i * n + j]);
+		}
+		printf("\n");
+	}
+}
 
 void *
 blkmult(void *varg)
@@ -144,7 +155,7 @@ int main(int argc, char **argv)
 			tm = 0;
 			uint64_t td = 0;
 			for (iter = 0; iter < niter; iter++) {
-				genmatrix(dim);
+				genmatrix(counter++);
 				uint64_t ts = bench_time();
 				matmult(nbi, nbj, dim);
 				td += bench_time() - ts;
