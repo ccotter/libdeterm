@@ -6,9 +6,9 @@
 
 #include <bench.h>
 
-#define MINDIM		16
+#define MINDIM		1024
 #define MAXDIM		1024
-#define MAXTHREADS	8
+#define MAXTHREADS	16
 
 /* Original author Bryan Ford <bryan.ford@yale.edu> for Determinator
  * http://github.com/bford/Determinator
@@ -80,7 +80,42 @@ matmult(int nbi, int nbj, int dim)
 	}
 }
 
+#include "../inc/rng.h"
+void genmatrix(int seed)
+{
+	bseed(seed);
+	int i;
+	for (i = 0; i < MAXDIM*MAXDIM; ++i) {
+		a[i] = brand() % 2000 + 1000;
+		b[i] = brand() % 2000 + 1000;
+	}
+}
+
 int main(int argc, char **argv)
+{
+	int nbi = 4;
+	int nbj = 4;
+	int nth = nbi * nbj;
+	int dim = 1024;
+	/* Block size = 256x256 */
+	int i;
+	int niter = 10;
+	uint64_t tt = 0;
+	for (i = 0; i < niter; ++i) {
+		genmatrix(i);
+		uint64_t ts = bench_time();
+		matmult(nbi, nbj, dim);
+		tt = bench_time() - ts;
+	}
+	tt /= niter;
+	printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
+		dim/nbi, dim/nbj, nth, niter,
+		(long long)tt / 1000000000,
+		(long long)tt % 1000000000);
+	return 0;
+}
+
+int main1(int argc, char **argv)
 {
 	int i;
 	for (i = 0; i < MAXDIM*MAXDIM; i++)
