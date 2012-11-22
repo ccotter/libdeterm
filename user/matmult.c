@@ -139,7 +139,7 @@ int main(int argc, char **argv)
 {
 	int counter = 0;
 	int dim, nth, nbi, nbj, iter;
-	nbi = nbj = 16;
+	nbi = nbj = 8;
 	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
