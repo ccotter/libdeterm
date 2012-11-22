@@ -42,9 +42,13 @@ pthread_mutex_t mutexes[MAXTHREADS][MAXTHREADS];
 int done[MAXTHREADS][MAXTHREADS];
 struct luargs args[MAXTHREADS][MAXTHREADS];
 
-mtype A[MAXDIM*MAXDIM], Orig[MAXDIM*MAXDIM],
-	  L[MAXDIM*MAXDIM], R[MAXDIM*MAXDIM];
-mtype x[MAXDIM];
+#define CHECK_CORRECTNESS 0
+
+mtype A[MAXDIM*MAXDIM], L[MAXDIM*MAXDIM];
+#if CHECK_CORRECTNESS
+mtype Orig[MAXDIM*MAXDIM], R[MAXDIM*MAXDIM];
+#endif
+
 int n;
 #define VAL(_a, _i, _j) (_a[_i * MAXDIM + _j])
 
@@ -60,6 +64,7 @@ static void print(mtype *arr)
 	}
 }
 
+#if CHECK_CORRECTNESS
 /* Multiply R = L*A */
 static void matmult()
 {
@@ -97,6 +102,7 @@ static void check(mtype *a, mtype *b)
 		}
 	}
 }
+#endif
 
 static inline void waitthread(int i, int j)
 {
@@ -201,7 +207,10 @@ void genmatrix(int seed)
 	for (i = 0; i < n; ++i) {
 		int j;
 		for (j = 0; j < n; ++j) {
-			VAL(Orig, i, j) = VAL(A, i, j) = brand() % 2000;
+			VAL(A, i, j) = brand() % 2000;
+#if CHECK_CORRECTNESS
+			VAL(Orig, i, j) = VAL(A, i, j);
+#endif
 		}
 	}
 }
@@ -214,7 +223,7 @@ static void usage(char **argv)
 	exit(1);
 }
 
-int main(int argc, char **argv)
+int main1(int argc, char **argv)
 {
 	if (2 != argc)
 		usage(argv);
@@ -226,7 +235,6 @@ int main(int argc, char **argv)
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			n, n, n*n, n*n*(int)sizeof(mtype));
 		int iter, niter = MAXDIM/n;
-		genmatrix(counter++);
 
 		int nbi = n / blocksize, nbj = n / blocksize;
 		if (!nbi)
@@ -234,11 +242,11 @@ int main(int argc, char **argv)
 
 		uint64_t td = 0;
 		for (iter = 0; iter < niter; iter++) {
-			memcpy(Orig, A, sizeof(A));
+			genmatrix(counter++);
 			uint64_t ts = bench_time();
 			plu(nbi, nbj);
 			td += bench_time() - ts;
-#if 0
+#if CHECK_CORRECTNESS
 			/* Ensure correctness. */
 			matmult();
 			check(Orig, R);
@@ -255,42 +263,44 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-int main1(void)
+int main(void)
 {
 	int nth, nbi, nbj, iter;
+	int counter = 0;
+	nbi = nbj = 16;
+	nth = nbi * nbj;
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			n, n, n*n, n*n*(int)sizeof(mtype));
-		for (nth = 1, nbi = nbj = 1; nth <= MAXTHREADS; ) {
-			int niter = MAXDIM/n;
-			genmatrix(1);
+		//for (nth = 1, nbi = nbj = 1; nth <= MAXTHREADS; ) {
+			//int niter = MAXDIM/n;
+			int niter = 5;
 
-			if (n < nbi || n < nbj)
-				break;
-
-			uint64_t ts = bench_time();
+			uint64_t td = 0;
 			for (iter = 0; iter < niter; iter++) {
-				memcpy(Orig, A, sizeof(A));
+				genmatrix(1);
+				uint64_t ts = bench_time();
 				plu(nbi, nbj);
-#if 0
+				td += bench_time() - ts;
+#if CHECK_CORRECTNESS
 				/* Ensure correctness. */
 				matmult();
 				check(Orig, R);
 #endif
 			}
-			uint64_t td = (bench_time() - ts) / niter;
+			td /= niter;
 
 			printf("blksize %dx%d thr %4d itr %d: %lld.%09lld\n",
 				n/nbi, n/nbj, nth, niter,
 				(long long)td / 1000000000,
 				(long long)td % 1000000000);
 
-			if (nbi == nbj)
+			/*if (nbi == nbj)
 				nbi *= 2;
 			else
 				nbj *= 2;
 			nth *= 2;
-		}
+		}*/
 	}
 	return 0;
 }

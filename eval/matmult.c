@@ -94,7 +94,7 @@ void genmatrix(int seed)
 	}
 }
 
-int main(int argc, char **argv)
+int main1(int argc, char **argv)
 {
 	int nbi = 4;
 	int nbj = 4;
@@ -118,22 +118,23 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-int main1(int argc, char **argv)
+int main(int argc, char **argv)
 {
-	int i;
-	for (i = 0; i < MAXDIM*MAXDIM; i++)
-		a[i] = b[i] = i;
 
 	int dim, nth, nbi, nbj, iter;
+	nbi = nbj = 16;
 	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
+		genmatrix(dim);
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
-		for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
-			assert(nth == nbi * nbj);
-			int niter = MAXDIM/dim;
-			niter = niter * niter; // * niter;	// MM = O(n^3)
+		//for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
+		//	assert(nth == nbi * nbj);
+			nth = nbi * nbj;
+			//int niter = MAXDIM/dim;
+			//niter = niter * niter; // * niter;	// MM = O(n^3)
+			int niter = 10;
 
-			matmult(nbi, nbj, dim);	// once to warm up...
+			//matmult(nbi, nbj, dim);	// once to warm up...
 
 			uint64_t ts = bench_time();
 			for (iter = 0; iter < niter; iter++)
@@ -145,12 +146,12 @@ int main1(int argc, char **argv)
 				(long long)td / 1000000000,
 				(long long)td % 1000000000);
 
-			if (nbi == nbj)
+			/*if (nbi == nbj)
 				nbi *= 2;
 			else
 				nbj *= 2;
 			nth *= 2;
-		}
+		}*/
 	}
 
 	return 0;

@@ -6,7 +6,7 @@
 
 #include <bench.h>
 
-#define MINDIM		1024
+#define MINDIM		16
 #define MAXDIM		1024
 #define MAXTHREADS	16
 
@@ -15,6 +15,7 @@
  * Adopted for deterministic Linux by Chris Cotter <ccotter@utexas.edu>.
  */
 
+uint64_t tm;
 typedef int elt;
 
 elt a[MAXDIM*MAXDIM], b[MAXDIM*MAXDIM], r[MAXDIM*MAXDIM];
@@ -75,7 +76,10 @@ matmult(int nbi, int nbj, int dim)
 	for (bi = 0; bi < nbi; bi++) {
 		for (bj = 0; bj < nbj; bj++) {
 			int child = bi*nbj + bj;
+			dget(child, 0, 0, 0, 0);
+			uint64_t ts = bench_time();
 			bench_join(child);
+			tm += bench_time() - ts;
 		}
 	}
 }
@@ -91,7 +95,7 @@ void genmatrix(int seed)
 	}
 }
 
-int main(int argc, char **argv)
+int main1(int argc, char **argv)
 {
 	int nbi = 4;
 	int nbj = 4;
@@ -101,6 +105,7 @@ int main(int argc, char **argv)
 	int i;
 	int niter = 10;
 	uint64_t tt = 0;
+	tm = 0;
 	for (i = 0; i < niter; ++i) {
 		genmatrix(i);
 		uint64_t ts = bench_time();
@@ -108,46 +113,55 @@ int main(int argc, char **argv)
 		tt += bench_time() - ts;
 	}
 	tt /= niter;
+	tm /= niter;
 	printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
 		dim/nbi, dim/nbj, nth, niter,
 		(long long)tt / 1000000000,
 		(long long)tt % 1000000000);
+	printf("merge time: %lld.%09lld\n",
+			(long long)tm / 1000000000,
+			(long long)tm % 1000000000);
 	return 0;
 }
 
-int main1(int argc, char **argv)
+int main(int argc, char **argv)
 {
-	int i;
-	for (i = 0; i < MAXDIM*MAXDIM; i++)
-		a[i] = b[i] = i;
-
 	int dim, nth, nbi, nbj, iter;
+	nbi = nbj = 16;
 	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
+		genmatrix(dim);
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
-		for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
-			assert(nth == nbi * nbj);
-			int niter = MAXDIM/dim;
-			niter = niter * niter; // * niter;	// MM = O(n^3)
+		//for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
+			//assert(nth == nbi * nbj);
+			nth = nbi * nbj;
+			//int niter = MAXDIM/dim;
+			//niter = niter * niter; // * niter;	// MM = O(n^3)
+			int niter = 10;
 
-			matmult(nbi, nbj, dim);	// once to warm up...
+			//matmult(nbi, nbj, dim);	// once to warm up...
 
+			tm = 0;
 			uint64_t ts = bench_time();
 			for (iter = 0; iter < niter; iter++)
 				matmult(nbi, nbj, dim);
 			uint64_t td = (bench_time() - ts) / niter;
+			tm /= 10;
 
 			printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
 				dim/nbi, dim/nbj, nth, niter,
 				(long long)td / 1000000000,
 				(long long)td % 1000000000);
+			printf("merge time: %lld.%09lld\n",
+					(long long)tm / 1000000000,
+					(long long)tm % 1000000000);
 
-			if (nbi == nbj)
+			/*if (nbi == nbj)
 				nbi *= 2;
 			else
 				nbj *= 2;
 			nth *= 2;
-		}
+		}*/
 	}
 
 	return 0;
