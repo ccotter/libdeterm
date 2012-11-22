@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 		genmatrix(i);
 		uint64_t ts = bench_time();
 		matmult(nbi, nbj, dim);
-		tt = bench_time() - ts;
+		tt += bench_time() - ts;
 	}
 	tt /= niter;
 	printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
