@@ -136,15 +136,8 @@ int main(int argc, char **argv)
 	int counter = 0;
 	int dim, nth, nbi, nbj, iter;
 	nbi = nbj = 4;
-	nbj = 2;
-	char buf[100000];
-	int next = 0;
-	void *mm = mmap(NULL, sizeof(r) * 10 * 7, PROT_READ|PROT_WRITE,
-			MAP_ANONYMOUS|MAP_PRIVATE,-1,0);
-	int mmc = 0;
-	int counters[120];
 	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
-		next += sprintf(buf+next,"matrix size: %dx%d = %d (%d bytes)\n",
+		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
 		//for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
 		//	assert(nth == nbi * nbj);
@@ -157,16 +150,14 @@ int main(int argc, char **argv)
 
 			uint64_t td = 0;
 			for (iter = 0; iter < niter; iter++) {
-				counters[mmc] = counter;
 				genmatrix(counter++);
 				uint64_t ts = bench_time();
 				matmult(nbi, nbj, dim);
 				td += bench_time() - ts;
-				memcpy(mm + sizeof(r) * mmc++, r, sizeof(r));
 			}
 			td /= niter;
 
-			next+=sprintf(buf+next,"blksize %dx%d thr %d itr %d: %lld.%09lld\n",
+			printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
 				dim/nbi, dim/nbj, nth, niter,
 				(long long)td / 1000000000,
 				(long long)td % 1000000000);
@@ -178,15 +169,6 @@ int main(int argc, char **argv)
 			nth *= 2;
 		}*/
 	}
-	mmc = 0;
-	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
-		for (iter = 0; iter < 10; ++iter) {
-			printf("counter=%d\n", counters[mmc]);
-			printm((int*)(mm + sizeof(r) * mmc++), dim);
-		}
-	}
-	//write(1,mm,10*sizeof(r)*7);
-	printf(buf);
 
 	return 0;
 }
