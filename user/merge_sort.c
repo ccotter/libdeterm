@@ -114,7 +114,6 @@ struct pmerge_data
 };
 
 int max_depth;
-int childid = 0;
 static void *pmerge_sort(void *_data)
 {
 	struct pmerge_data *data = _data;
@@ -138,22 +137,36 @@ static void *pmerge_sort(void *_data)
 				.depth = depth + 1
 			};
 
-			int lid = ++childid;
-			int rid = ++childid;
+			int lid = 0;
+			int rid = 1;
 			long T;
 
+
+			bench_fork(lid, pmerge_sort, &larg);
+			bench_fork(rid, pmerge_sort, &rarg);
+			dget(lid, DET_MERGE, (unsigned long)A, r - p, 0);
+			dget(rid, DET_MERGE, (unsigned long)A, r - p, 0);
+			dput(lid, DET_KILL, 0, 0, 0);
+			dput(rid, DET_KILL, 0, 0, 0);
+#if 0
+			bench_fork(lid, pmerge_sort, &larg);
+			bench_fork(rid, pmerge_sort, &rarg);
+			bench_join(lid);
+			bench_join(rid);
+#endif
+#if 0
 			int rc = dput(lid, DET_START, 0, 0, 0);
 			if (!rc) { pmerge_sort(&larg); dret(); }
 			rc = dput(rid, DET_START, 0, 0, 0);
 			if (!rc) { pmerge_sort(&rarg); dret(); }
 
-			/* Join data. */
 			size_t sz = sizeof(int) * (q - p + 1);
 			dget(lid, DET_VM_COPY, (long)(A+p), sz, (long)(A+p));
 			sz = sizeof(int) * (r - q + 1);
 			dget(rid, DET_VM_COPY, (long)(A+q), sz, (long)(A+q));
 			dput(lid, DET_KILL, 0, 0, 0);
 			dput(rid, DET_KILL, 0, 0, 0);
+#endif
 		} else {
 			/* Once we reach a certain depth, stop forking threads. */
 			merge_sort(A, p, q);
@@ -164,8 +177,8 @@ static void *pmerge_sort(void *_data)
 	return NULL;
 }
 
-#define MAXTHREADS	8
-#define NITER		10
+#define MAXTHREADS	64
+#define NITER		1
 
 KEY_T randints[NITER][MAX_ARRAY_SIZE+1];
 
@@ -209,23 +222,35 @@ testmergesort(int array_size, int nthread)
 	printf("array_size: %d\tavg. time: %lld.%09lld\n", array_size, t1, t2);
 }
 
-int
-main(void)
+static void usage(char **argv)
 {
-	int nth;
+	printf("usag: %s N\n  N - max number of children threads\n", argv[1]);
+	exit(1);
+}
+
+int
+main(int argc, char **argv)
+{
+	if (2 != argc)
+		usage(argv);
+	int nth = strtol(argv[1], NULL, 10);
+	if (nth < 0)
+		usage(argv);
+	printf("nthreads %d...\n", nth);
 	max_depth = 0;
-	for (nth = 1; nth <= MAXTHREADS; nth *= 2, ++max_depth) {
-		printf("nthreads %d...\n", nth, max_depth);
-		testmergesort(1000, nth);
-		testmergesort(5000, nth);
-		testmergesort(10000, nth);
-		testmergesort(50000, nth);
-		testmergesort(100000, nth);
-		testmergesort(500000, nth);
-		testmergesort(1000000, nth);
-		testmergesort(5000000, nth);
-		testmergesort(10000000, nth);
-	}
+	int i = nth;
+	while (i /= 2)
+		max_depth++;
+	printf("qwe=%d\n", max_depth);
+	testmergesort(1000, nth);
+	testmergesort(5000, nth);
+	testmergesort(10000, nth);
+	testmergesort(50000, nth);
+	testmergesort(100000, nth);
+	testmergesort(500000, nth);
+	testmergesort(1000000, nth);
+	testmergesort(5000000, nth);
+	testmergesort(10000000, nth);
 	return 0;
 }
 

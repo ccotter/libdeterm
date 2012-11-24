@@ -1,4 +1,5 @@
 
+#include <stdlib.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -9,6 +10,8 @@
 #include "bench.h"
 
 typedef int	KEY_T;
+
+#define CHECK_CORRECTNESS 0
 
 /*
  * These are the COMPARISON macros
@@ -32,11 +35,13 @@ typedef int	KEY_T;
 
 static int is_sorted(KEY_T *k, int sz)
 {
+#if CHECK_CORRECTNESS
 	int i;
 	for (i = 0; i < sz - 1; ++i) {
 		if (!LT(k[i], k[i+1]))
 			return 0;
 	}
+#endif
 	return 1;
 }
 
@@ -234,23 +239,21 @@ pqsort(void *arg)
 	return NULL;
 }
 
-#define MAX_ARRAY_SIZE	10000000
-#define MAXTHREADS	8
-#define NITER		10
+#define MAX_ARRAY_SIZE	100000000
+#define MAXTHREADS	64
+#define NITER		3
 
-KEY_T randints[NITER][MAX_ARRAY_SIZE+1];
+KEY_T randints[MAX_ARRAY_SIZE+1];
 
 #include "../inc/rng.h"
 void
 gen_randints(ssize_t n, int seed) {
 	bseed(seed);
-	int i,j;
-	for(j = 0; j < NITER; j++) {
-		for(i = 0; i < n; ++i) {
-			randints[j][i] = (KEY_T)(UINT_MAX * brand());
-		}
-		randints[j][n] = INT_MAX;	// sentinel at end of array
+	int i;
+	for(i = 0; i < n; ++i) {
+		randints[i] = (KEY_T)(UINT_MAX * brand());
 	}
+	randints[n] = INT_MAX;	// sentinel at end of array
 }
 
 void
@@ -259,43 +262,60 @@ testpqsort(int array_size, int nthread)
 	assert(nthread <= MAXTHREADS);
 	int iter;
 
-	gen_randints(array_size, 1);
-	uint64_t ts = bench_time();
+	uint64_t tt = 0;
 	for(iter = 0; iter < NITER; ++iter) {
+		gen_randints(array_size, array_size + iter);
+		uint64_t ts = bench_time();
 		pqsort_args arg = {
-			.lo = randints[iter],
-			.hi = randints[iter] + array_size - 1,
+			.lo = randints,
+			.hi = randints + array_size - 1,
 			.nth = nthread,
 			.cn = 1 };
 		pqsort(&arg);
-		if (!is_sorted(randints[iter], array_size)) {
+		tt += bench_time() - ts;
+		if (!is_sorted(randints, array_size)) {
 			printf("BAD");
 		}
 	}
-	uint64_t td = bench_time();
-	uint64_t tt = (td - ts);
+	tt /= NITER;
 
-	long long t1 = (tt / NITER) / 1000000000;
-	long long t2 = (tt / NITER) % 1000000000;
+	long long t1 = tt / 1000000000;
+	long long t2 = tt % 1000000000;
 	printf("array_size: %d\tavg. time: %lld.%09lld\n", array_size, t1, t2);
 }
 
-int
-main()
+static void usage(char **argv)
 {
-	int nth;
-	for (nth = 1; nth <= MAXTHREADS; nth *= 2) {
-		printf("nthreads %d...\n", nth);
-		testpqsort(1000, nth);
-		testpqsort(5000, nth);
-		testpqsort(10000, nth);
-		testpqsort(50000, nth);
-		testpqsort(100000, nth);
-		testpqsort(500000, nth);
-		testpqsort(1000000, nth);
-		testpqsort(5000000, nth);
-		testpqsort(10000000, nth);
-	}
+	printf("usage: %s N\n  N - max number of children threads to fork\n",
+			argv[0]);
+	exit(1);
+}
+
+int
+main(int argc, char **argv)
+{
+	if (2 != argc)
+		usage(argv);
+	int nth = strtol(argv[1], NULL, 0);
+	if (nth < 0)
+		usage(argv);
+
+	printf("nthreads %d...\n", nth);
+	testpqsort(1000, nth);
+	testpqsort(4000, nth);
+	testpqsort(8000, nth);
+	testpqsort(10000, nth);
+	testpqsort(40000, nth);
+	testpqsort(80000, nth);
+	testpqsort(100000, nth);
+	testpqsort(400000, nth);
+	testpqsort(800000, nth);
+	testpqsort(1000000, nth);
+	testpqsort(4000000, nth);
+	testpqsort(8000000, nth);
+	testpqsort(10000000, nth);
+	testpqsort(40000000, nth);
+	testpqsort(80000000, nth);
 	return 0;
 }
 
