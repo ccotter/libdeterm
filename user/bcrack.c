@@ -164,18 +164,17 @@ int main(int argc, char **argv)
 	if (nthreads < 0)
 		usage(argv);
 	char *hashes[] = {
-		"2bec52c0729e136fcf418b7ee42e51c7",
-		"4e50f5e7a29d352bc4c3267cffdd50a4",
-		"75cf1d4a01dfd9703c26927574d72230",
-		"a6f931611c69f3500ad52e84a0c96d2d",
-		"60662e6279e742da121699b10c5a9f54",
-		"78d2a8b546632b0df5f0cd12b551998a",
-		"dbdd1e7fba9a2ee6dd033af77c8ee398",
-		"38f1eebefea62e6affc37d97202df948",
-		"6e4eb59d8f151da5ce10866c35f433ab",
-		"86f21f30b32ab591e804add38f82d7b8",
-		"40cee8c8635cc4e301848e20c4eb840a",
-		"fbf45a198e8b5be665c3903ddebb9eff"
+		"2bec52c0729e136fcf418b7ee42e51c7", // g4)_
+		"4e50f5e7a29d352bc4c3267cffdd50a4", // TlQ8
+		"75cf1d4a01dfd9703c26927574d72230", // 2eQ6
+		"a6f931611c69f3500ad52e84a0c96d2d", // 38vx
+		"60662e6279e742da121699b10c5a9f54", // ]9my
+		"78d2a8b546632b0df5f0cd12b551998a", // j;,t
+		"dbdd1e7fba9a2ee6dd033af77c8ee398", // 6xox
+		"38f1eebefea62e6affc37d97202df948", // *`Vg
+		"6e4eb59d8f151da5ce10866c35f433ab", // Q=f5
+		"8161c9e97e4b6cfdbc489ad763d1fad8", // _a_t
+		"eab3b5cb4a2998d33ffc49aa3d03986f" // eec@
 	};
 	unsigned i;
 	for (i = 0; i < sizeof(hashes) / sizeof(char*); ++i) {
