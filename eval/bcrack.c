@@ -150,8 +150,20 @@ crack(char *hashv, int nthreads)
 	}
 }
 
-int main(void)
+static void usage(char **argv)
 {
+	printf("usage: %s N\n  N - number of threads to fork\n", argv[0]);
+	exit(1);
+}
+
+int main(int argc, char **argv)
+{
+	int nthreads;
+	if (2 != argc)
+		usage(argv);
+	nthreads = strtol(argv[1], NULL, 0);
+	if (nthreads < 0)
+		usage(argv);
 	char *hashes[] = {
 		"2bec52c0729e136fcf418b7ee42e51c7",
 		"4e50f5e7a29d352bc4c3267cffdd50a4",
@@ -166,14 +178,11 @@ int main(void)
 		"40cee8c8635cc4e301848e20c4eb840a",
 		"fbf45a198e8b5be665c3903ddebb9eff"
 	};
-	int nthreads[] = {1, 2, 4, 8};
 	unsigned i;
 	for (i = 0; i < sizeof(hashes) / sizeof(char*); ++i) {
 		unsigned j;
-		printf("Searching for password to match %s..\n", hashes[i]);
-		for (j = 0; j < sizeof(nthreads) / sizeof(int); ++j) {
-			crack(hashes[i], nthreads[j]);
-		}
+		printf("Searching for password to match %s.\n", hashes[i]);
+		crack(hashes[i], nthreads);
 		printf("\n");
 	}
 	return 0;
