@@ -19,6 +19,7 @@
  */
 
 typedef int elt;
+uint64_t total;
 
 elt a[MAXDIM*MAXDIM], b[MAXDIM*MAXDIM], r[MAXDIM*MAXDIM];
 
@@ -57,6 +58,11 @@ blkmult(void *varg)
 				sum += a[ii*dim+kk] * b[kk*dim+jj];
 			r[ii*dim+jj] = sum;
 		}
+	uint64_t qwe = bench_time() - total;
+	printf("  child %d finished at %ld.%09ld\n",
+			arg->bi * nbj + arg->bj,
+			qwe/1000000000,
+			qwe%1000000000);
 	return NULL;
 }
 
@@ -84,6 +90,11 @@ matmult(int nbi, int nbj, int dim)
 			arg[child].nbj = nbj;
 			arg[child].dim = dim;
 			pthread_create(&threads[child], NULL, blkmult, &arg[child]);
+			uint64_t q = bench_time() - total;
+			printf("created %d at %ld.%09ld\n",
+					child,
+					q/1000000000,
+					q%1000000000);
 		}
 
 	// Now go back and merge in the results of all our children
@@ -91,6 +102,11 @@ matmult(int nbi, int nbj, int dim)
 		for (bj = 0; bj < nbj; bj++) {
 			int child = bi*nbj + bj;
 			pthread_join(threads[child], NULL);
+			uint64_t q = bench_time() - total;
+			printf("joined %d at %ld.%09ld\n",
+					child,
+					q/1000000000,
+					q%1000000000);
 		}
 	}
 	free(threads);
@@ -133,9 +149,13 @@ int main1(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
+	total = bench_time();
 	int counter = 0;
 	int dim, nth, nbi, nbj, iter;
 	nbi = nbj = 4;
+	genmatrix(0);
+	matmult(4,4,1024);
+	exit(0);
 	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
