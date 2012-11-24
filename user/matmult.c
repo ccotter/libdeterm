@@ -1,6 +1,4 @@
 
-#include <sys/mman.h>
-#include <syscall.h>
 #include <stdio.h>
 #include <assert.h>
 #include <determinism.h>
@@ -19,10 +17,8 @@
 
 uint64_t tm;
 typedef int elt;
-uint64_t total;
 
 elt a[MAXDIM*MAXDIM], b[MAXDIM*MAXDIM], r[MAXDIM*MAXDIM];
-uint64_t dones[256];
 
 struct tharg {
 	int bi, bj, nbi, nbj, dim;
@@ -59,8 +55,6 @@ blkmult(void *varg)
 				sum += a[ii*dim+kk] * b[kk*dim+jj];
 			r[ii*dim+jj] = sum;
 		}
-	uint64_t qwe = bench_time() - total;
-	dones[arg->bi * nbj + arg->bj] = bench_time() - total;
 	return NULL;
 }
 
@@ -87,11 +81,6 @@ matmult(int nbi, int nbj, int dim)
 			arg[child].nbj = nbj;
 			arg[child].dim = dim;
 			bench_fork(child, blkmult, &arg[child]);
-			uint64_t q = bench_time() - total;
-			if(dim==1024)printf("created %d at %ld.%09ld\n",
-					child,
-					q/1000000000,
-					q%1000000000);
 		}
 
 	// Now go back and merge in the results of all our children
@@ -102,11 +91,6 @@ matmult(int nbi, int nbj, int dim)
 			uint64_t ts = bench_time();
 			bench_join(child);
 			tm += bench_time() - ts;
-			uint64_t q = bench_time() - total;
-			if(dim==1024)printf("joined %d at %ld.%09ld\n",
-					child,
-					q/1000000000,
-					q%1000000000);
 		}
 	}
 }
@@ -153,13 +137,9 @@ int main1(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-	total = bench_time();
 	int counter = 0;
 	int dim, nth, nbi, nbj, iter;
-	nbi = nbj = 4;
-	/*genmatrix(0);
-	matmult(4,4,1024);
-	*/
+	nbi = nbj = 8;
 	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
@@ -177,19 +157,8 @@ int main(int argc, char **argv)
 			for (iter = 0; iter < niter; iter++) {
 				genmatrix(counter++);
 				uint64_t ts = bench_time();
-				total = bench_time();
 				matmult(nbi, nbj, dim);
 				td += bench_time() - ts;
-				if (dim==1024) {
-
-					int e;
-	for(e = 0; dones[e]; ++e) {
-	printf("  child %d finished at %ld.%09ld\n",
-			e,
-			dones[e]/1000000000,
-			dones[e]%1000000000);
-	}
-				}
 			}
 			td /= niter;
 			tm /= niter;
