@@ -1,0 +1,15 @@
+inc/assert.h
+inc/cdefs.h
+inc/ctype.h
+inc/limits.h
+inc/stdarg.h
+inc/stdint.h
+inc/stdio.h
+inc/string.h
+inc/sys/types.h
+lib/debug.c
+lib/getopt.c
+lib/printfmt.c
+lib/scanfmt.c
+lib/sprintf.c
+lib/string.c
