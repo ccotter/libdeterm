@@ -135,48 +135,50 @@ int main1(int argc, char **argv)
 	return 0;
 }
 
+static void usage(char **argv)
+{
+	printf("usage: %s nbi nbj\n  nbi/nbj Number of row/column partitions.\n",
+			argv[0]);
+	exit(1);
+}
+
 int main(int argc, char **argv)
 {
 	int counter = 0;
 	int dim, nth, nbi, nbj, iter;
-	nbi = nbj = 8;
+
+	if (3 != argc)
+		usage(argv);
+	nbi = strtol(argv[1], NULL, 0);
+	nbj = strtol(argv[2], NULL, 0);
+	if (nbi <= 0 || nbj <= 0)
+		usage(argv);
+
+	int niter = 10;
 	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
-		printf("matrix size: %dx%d = %d (%d bytes)\n",
-			dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
-		//for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
-			//assert(nth == nbi * nbj);
-			nth = nbi * nbj;
-			//int niter = MAXDIM/dim;
-			//niter = niter * niter; // * niter;	// MM = O(n^3)
-			int niter = 10;
+		nth = nbi * nbj;
 
-			//matmult(nbi, nbj, dim);	// once to warm up...
+		/* Once to warm up. */
+		genmatrix(counter++);
+		matmult(nbi, nbj, dim);
 
+		printf("matrix size: %dx%d = %d (%d bytes)",
+				dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
+		printf("blksize %dx%d thr %d itr %d:\n",
+			dim/nbi, dim/nbj, nth, niter);
+		for (iter = 0; iter < niter; iter++) {
 			tm = 0;
-			uint64_t td = 0;
-			for (iter = 0; iter < niter; iter++) {
-				genmatrix(counter++);
-				uint64_t ts = bench_time();
-				matmult(nbi, nbj, dim);
-				td += bench_time() - ts;
-			}
-			td /= niter;
-			tm /= niter;
-
-			printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
-				dim/nbi, dim/nbj, nth, niter,
-				(long long)td / 1000000000,
-				(long long)td % 1000000000);
-			printf("merge time: %lld.%09lld\n",
+			genmatrix(counter++);
+			uint64_t ts = bench_time();
+			matmult(nbi, nbj, dim);
+			ts = bench_time() - ts;
+			printf("%lld.%09lld %lld.%09lld\n",
+					(long long)ts / 1000000000,
+					(long long)ts % 1000000000,
 					(long long)tm / 1000000000,
 					(long long)tm % 1000000000);
+		}
 
-			/*if (nbi == nbj)
-				nbi *= 2;
-			else
-				nbj *= 2;
-			nth *= 2;
-		}*/
 	}
 
 	return 0;
