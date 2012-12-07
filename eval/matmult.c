@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 		genmatrix(counter++);
 		matmult(nbi, nbj, dim);
 
-		printf("matrix size: %dx%d = %d (%d bytes)",
+		printf("matrix size: %dx%d = %d (%d bytes) ",
 				dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
 		printf("blksize %dx%d thr %d itr %d:\n",
 			dim/nbi, dim/nbj, nth, niter);

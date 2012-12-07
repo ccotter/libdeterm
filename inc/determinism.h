@@ -27,6 +27,7 @@ long master_allow_signals(sigset_t *set, size_t size);
 
 /* TODO to go into a dthread.h header */
 int dfork(pid_t pid);
+int dfork_fn(pid_t pid, void *(*fn)(void*), void *data);
 int dwait(pid_t pid);
 
 #endif

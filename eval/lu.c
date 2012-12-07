@@ -36,11 +36,12 @@ struct luargs
 
 void *lu(void*);
 
-pthread_t threads[MAXTHREADS][MAXTHREADS];
-pthread_cond_t conds[MAXTHREADS][MAXTHREADS];
-pthread_mutex_t mutexes[MAXTHREADS][MAXTHREADS];
-int done[MAXTHREADS][MAXTHREADS];
+pthread_t threads[MAXTHREADS];
 struct luargs args[MAXTHREADS][MAXTHREADS];
+int status[MAXTHREADS][MAXTHREADS];
+#define NOTRUN 0
+#define RUNNING 1
+#define DONE 2
 
 #define CHECK_CORRECTNESS 0
 
@@ -104,25 +105,6 @@ static void check(mtype *a, mtype *b)
 }
 #endif
 
-static inline void waitthread(int i, int j)
-{
-	if (i < 0 || j < 0)
-		return;
-	pthread_mutex_lock(&mutexes[i][j]);
-	while (!done[i][j]) {
-		pthread_cond_wait(&conds[i][j], &mutexes[i][j]);
-	}
-	pthread_mutex_unlock(&mutexes[i][j]);
-}
-
-static inline void threaddone(int i, int j)
-{
-	pthread_mutex_lock(&mutexes[i][j]);
-	done[i][j] = 1;
-	pthread_mutex_unlock(&mutexes[i][j]);
-	pthread_cond_broadcast(&conds[i][j]);
-}
-
 /* Serial LU decomposition. */
 void *lu(void *_arg)
 {
@@ -135,9 +117,6 @@ void *lu(void *_arg)
 	int col0 = bj * n / nbj;
 	int row1 = row0 + n / nbi;
 	int col1 = col0 + n / nbj;
-
-	waitthread(bi - 1, bj);
-	waitthread(bi, bj - 1);
 
 	int i;
 	for (i = row0; i < row1; ++i) {
@@ -152,44 +131,64 @@ void *lu(void *_arg)
 			}
 		}
 	}
-	threaddone(bi, bj);
 	return NULL;
 }
 
-
-
-void plu(int nbi, int nbj)
+int alldone(int nbi, int nbj)
 {
 	int i;
 	for (i = 0; i < nbi; ++i) {
 		int j;
 		for (j = 0; j < nbj; ++j) {
+			if (!status[i][j])
+				return 0;
+		}
+	}
+	return 1;
+}
+
+void plu(int nbi, int nbj)
+{
+	int i, j;
+	for (i = 0; i < nbi; ++i) {
+		for (j = 0; j < nbj; ++j) {
 			args[i][j].bi = i;
 			args[i][j].bj = j;
 			args[i][j].nbi = nbi;
 			args[i][j].nbj = nbj;
-			done[i][j] = 0;
-			pthread_mutex_init(&mutexes[i][j], NULL);
-			pthread_cond_init(&conds[i][j], NULL);
-			pthread_create(&threads[i][j], NULL, lu, &args[i][j]);
 		}
 	}
-	for (i = 0; i < nbi; ++i) {
-		int j;
-		for (j = 0; j < nbj; ++j) {
-			pthread_join(threads[i][j], NULL);
+#define USE_FORK 1
+#define RBOUNDS(__x) (0 <= (__x) && (__x) < nbi)
+#define CBOUNDS(__x) (0 <= (__x) && (__x) < nbj)
+#define READY(_x, _y) ( \
+		(!RBOUNDS((_x)-1) || DONE == status[(_x)-1][(_y)]) && \
+		(!CBOUNDS((_y)-1) || DONE == status[(_x)][(_y)-1]))
+	memset(status, 0, sizeof(status));
+	while (!alldone(nbi, nbj)) {
+		for (i = 0; i < nbi; ++i) {
+			for (j = 0; j < nbj; ++j) {
+				if (!READY(i, j) || DONE == status[i][j])
+					continue;
+				status[i][j] = RUNNING;
+#if USE_FORK
+				pthread_create(&threads[nbj * i + j], NULL, lu, &args[i][j]);
+#endif
+			}
 		}
-	}
-	for (i = 0; i < nbi; ++i) {
-		int j;
-		for (j = 0; j < nbj; ++j) {
-			pthread_mutex_destroy(&mutexes[i][j]);
-			pthread_cond_destroy(&conds[i][j]);
+		for (i = 0; i < nbi; ++i) {
+			for (j = 0; j < nbj; ++j) {
+				if (RUNNING != status[i][j])
+					continue;
+#if USE_FORK
+				pthread_join(threads[nbj * i + j], NULL);
+#endif
+				status[i][j] = DONE;
+			}
 		}
 	}
 	/* Clear bottom of A (which is now U) and make L's diagonals 1s. */
 	for (i = 0; i < n; ++i) {
-		int j;
 		for (j = 0; j < n; ++j) {
 			if (i > j)
 				VAL(A,i,j) = 0;
@@ -217,90 +216,45 @@ void genmatrix(int seed)
 
 static void usage(char **argv)
 {
-	printf("usage: %s N\n", argv[0]);
-	printf("Runs LU decomposition with block size of NxN (N must be a "
-			"power of 2)\n");
+	printf("usage: %s nbi nbj\n  nbi/nbj Number of row/column partitions.\n",
+			argv[0]);
 	exit(1);
 }
 
-int main1(int argc, char **argv)
+int main(int argc, char **argv)
 {
-	if (2 != argc)
-		usage(argv);
-	int blocksize = strtol(argv[1], NULL, 10);
-	if (blocksize <= 0 || blocksize != (blocksize & -blocksize))
-		usage(argv);
+	int nth, nbi, nbj, iter;
 	int counter = 0;
+
+	if (3 != argc)
+		usage(argv);
+	nbi = strtol(argv[1], NULL, 0);
+	nbj = strtol(argv[2], NULL, 0);
+	if (nbi <= 0 || nbj <= 0)
+		usage(argv);
+	nth = nbi * nbj;
+
+	int niter = 10;
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
-		printf("matrix size: %dx%d = %d (%d bytes)\n",
-			n, n, n*n, n*n*(int)sizeof(mtype));
-		int iter, niter = MAXDIM/n;
 
-		int nbi = n / blocksize, nbj = n / blocksize;
-		if (!nbi)
-			nbi = nbj = 1;
-
-		uint64_t td = 0;
+		printf("matrix size: %dx%d = %d (%d bytes) ",
+				n, n, n*n, n*n*(int)sizeof(mtype));
+		printf("blksize %dx%d thr %4d itr %d:\n",
+				n/nbi, n/nbj, nth, niter);
 		for (iter = 0; iter < niter; iter++) {
 			genmatrix(counter++);
 			uint64_t ts = bench_time();
 			plu(nbi, nbj);
-			td += bench_time() - ts;
+			ts = bench_time() - ts;
+			printf("%lld.%09lld\n",
+					(long long)ts / 1000000000,
+					(long long)ts % 1000000000);
 #if CHECK_CORRECTNESS
-			/* Ensure correctness. */
 			matmult();
 			check(Orig, R);
 #endif
 		}
-		td /= niter;
 
-		printf("  blksize %dx%d itr %d: %lld.%09lld\n",
-				n/nbi, n/nbj, niter,
-				(long long)td / 1000000000,
-				(long long)td % 1000000000);
-	}
-
-	return 0;
-}
-
-int main(void)
-{
-	int nth, nbi, nbj, iter;
-	int counter = 0;
-	nbi = nbj = 16;
-	nth = nbi * nbj;
-	for (n = MINDIM; n <= MAXDIM; n *= 2) {
-		printf("matrix size: %dx%d = %d (%d bytes)\n",
-			n, n, n*n, n*n*(int)sizeof(mtype));
-		//for (nth = 1, nbi = nbj = 1; nth <= MAXTHREADS; ) {
-			//int niter = MAXDIM/n;
-			int niter = 5;
-
-			uint64_t td = 0;
-			for (iter = 0; iter < niter; iter++) {
-				genmatrix(1);
-				uint64_t ts = bench_time();
-				plu(nbi, nbj);
-				td += bench_time() - ts;
-#if CHECK_CORRECTNESS
-				/* Ensure correctness. */
-				matmult();
-				check(Orig, R);
-#endif
-			}
-			td /= niter;
-
-			printf("blksize %dx%d thr %4d itr %d: %lld.%09lld\n",
-				n/nbi, n/nbj, nth, niter,
-				(long long)td / 1000000000,
-				(long long)td % 1000000000);
-
-			/*if (nbi == nbj)
-				nbi *= 2;
-			else
-				nbj *= 2;
-			nth *= 2;
-		}*/
 	}
 	return 0;
 }

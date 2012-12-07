@@ -61,6 +61,15 @@ int dfork(pid_t pid)
 	}
 }
 
+int dfork_fn(pid_t pid, void *(*fn)(void*), void *data)
+{
+	int rc = dfork(pid);
+	if (rc < 0)
+		return rc;
+	;
+	return 0;
+}
+
 int dwait(pid_t pid)
 {
 	int state;

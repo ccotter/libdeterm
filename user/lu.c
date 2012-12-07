@@ -35,7 +35,6 @@ void *lu(void*);
 
 struct luargs args[MAXTHREADS][MAXTHREADS];
 int status[MAXTHREADS][MAXTHREADS];
-uint64_t times[MAXTHREADS][MAXTHREADS];
 #define NOTRUN 0
 #define RUNNING 1
 #define DONE 2
@@ -137,7 +136,6 @@ void *lu(void *_arg)
 	int col0 = bj * n / nbj;
 	int row1 = row0 + n / nbi;
 	int col1 = col0 + n / nbj;
-	times[bi][bj] = bench_time();
 
 	int i;
 	for (i = row0; i < row1; ++i) {
@@ -152,7 +150,6 @@ void *lu(void *_arg)
 			}
 		}
 	}
-	times[bi][bj] = bench_time() - times[bi][bj];
 	return NULL;
 }
 
@@ -181,39 +178,6 @@ void plu(int nbi, int nbj)
 			args[i][j].nbj = nbj;
 		}
 	}
-#if 0
-	// This stategy fails - incorrect synchronization order. */
-	/* Start the first row. */
-	for (i = j = 0; j < nbj; ++j) {
-		printf("Forked (%d,%d)\n", i, j);
-		bench_fork(i * n + j, lu, &args[i][j]);
-	}
-	while (i < nbi) {
-		for (j = 0; j < nbj; ++j) {
-			printf(" join on (%d,%d)\n", i, j);
-			bench_join(i * n + j);
-			/* Start the next threads: remaining n-1 threads on the currrent row
-			 * and 1 thread on the next row. */
-			if (!j && i) {
-				int k;
-				for (k = 1; k < nbj; ++k) {
-					printf("Forke2 (%d,%d)\n", i, k);
-					bench_fork(i * n + k, lu, &args[i][k]);
-				}
-			}
-			if (!j && i + 1 < nbi) {
-				printf("Forke3 (%d,%d)\n", i+1, 0);
-				bench_fork((i+1) * n, lu, &args[i+1][0]);
-			}
-		}
-		++i;
-	}
-	/* Join last row threads. */
-	/*for (i = nbi - 1, j = 1; j < nbj; ++j) {
-		printf(" join on (%d,%d)\n", i, j);
-		bench_join(i * n + j);
-	}*/
-#endif
 #define USE_FORK 1
 #define RBOUNDS(__x) (0 <= (__x) && (__x) < nbi)
 #define CBOUNDS(__x) (0 <= (__x) && (__x) < nbj)
@@ -221,8 +185,6 @@ void plu(int nbi, int nbj)
 		(!RBOUNDS((_x)-1) || DONE == status[(_x)-1][(_y)]) && \
 		(!CBOUNDS((_y)-1) || DONE == status[(_x)][(_y)-1]))
 	memset(status, 0, sizeof(status));
-	memset(times, 0, sizeof(times));
-#if 1
 	while (!alldone(nbi, nbj)) {
 		for (i = 0; i < nbi; ++i) {
 			for (j = 0; j < nbj; ++j) {
@@ -239,8 +201,6 @@ void plu(int nbi, int nbj)
 #endif
 			}
 		}
-		//for (i = nbi - 1; i >= 0; ++i) {
-		//	for (j = nbj - 1; j >= 0; --j) {
 		for (i = 0; i < nbi; ++i) {
 			for (j = 0; j < nbj; ++j) {
 				if (RUNNING != status[i][j])
@@ -261,36 +221,10 @@ void plu(int nbi, int nbj)
 				dget(nbj * i + j, DET_VM_COPY, addrL, size, addrL);
 				dput(nbj * i + j, DET_KILL, 0, 0, 0);
 #endif
-				tt += times[i][j];
 				status[i][j] = DONE;
 			}
 		}
 	}
-#endif
-#if 0
-outer:
-	while (!alldone(nbi, nbj)) {
-		/* Create all that we can. */
-		for (i = 0; i < nbi; ++i) {
-			for (j = 0; j < nbj; ++j) {
-				if (!READY(i, j) || NOTRUN != status[i][j])
-					continue;
-				status[i][j] = RUNNING;
-				bench_fork(nbj * i + j, lu, &args[i][j]);
-			}
-		}
-		/* Join on next thread, then continue outer loop. */
-		for (i = 0; i < nbi; ++i) {
-			for (j = 0; j < nbj; ++j) {
-				if (RUNNING != status[i][j])
-					continue;
-				bench_join(nbj * i + j);
-				status[i][j] = DONE;
-				goto outer;
-			}
-		}
-	}
-#endif
 	/* Clear bottom of A (which is now U) and make L's diagonals 1s. */
 	for (i = 0; i < n; ++i) {
 		for (j = 0; j < n; ++j) {
@@ -327,113 +261,43 @@ static void usage(char **argv)
 	exit(1);
 }
 
-int main1(int argc, char **argv)
+int main(int argc, char **argv)
 {
-	if (2 != argc)
-		usage(argv);
-	int blocksize = strtol(argv[1], NULL, 10);
-	if (blocksize <= 0 || blocksize != (blocksize & -blocksize))
-		usage(argv);
-#if 0
-	n = 1024;
-	genmatrix(1);
-	uint64_t ts = bench_time();
-	plu(n/16,n/16);
-	ts = bench_time() - ts;
-	printf("In MERGE: %ld.%09ld\n",
-			tm/1000000000,
-			tm%1000000000);
-	printf("Doing work: %ld.%09ld\n",
-			tt/1000000000,
-			tt%1000000000);
-	printf("Overall: %ld.%09ld\n",
-			ts/1000000000,
-			ts%1000000000);
-	exit(0);
-#endif
+	int nth, nbi, nbj, iter;
 	int counter = 0;
+
+	if (3 != argc)
+		usage(argv);
+	nbi = strtol(argv[1], NULL, 0);
+	nbj = strtol(argv[2], NULL, 0);
+	if (nbi <= 0 || nbj <= 0)
+		usage(argv);
+	nth = nbi * nbj;
+
+	int niter = 10;
 	for (n = MINDIM; n <= MAXDIM; n *= 2) {
-		printf("matrix size: %dx%d = %d (%d bytes)\n",
-			n, n, n*n, n*n*(int)sizeof(mtype));
-		int iter, niter = MAXDIM/n;
 
-		int nbi = n / blocksize, nbj = n / blocksize;
-		nbi = nbj = 16;
-		if (!nbi)
-			nbi = nbj = 1;
-
-		uint64_t td = 0;
-		tt = tm = 0;
+		printf("matrix size: %dx%d = %d (%d bytes) ",
+				n, n, n*n, n*n*(int)sizeof(mtype));
+		printf("blksize %dx%d thr %4d itr %d:\n",
+				n/nbi, n/nbj, nth, niter);
 		for (iter = 0; iter < niter; iter++) {
+			tm = 0;
 			genmatrix(counter++);
 			uint64_t ts = bench_time();
 			plu(nbi, nbj);
-			td += bench_time() - ts;
+			ts = bench_time() - ts;
+			printf("%lld.%09lld %lld.%09lld\n",
+					(long long)ts / 1000000000,
+					(long long)ts % 1000000000,
+					(long long)tm / 1000000000,
+					(long long)tm % 1000000000);
 #if CHECK_CORRECTNESS
-			/* Ensure correctness. */
 			matmult();
 			check(Orig, R);
 #endif
 		}
-		td /= niter;
-		tm /= niter;
 
-		printf("  blksize %dx%d itr %d: %lld.%09lld\n",
-				n/nbi, n/nbj, niter,
-				(long long)td / 1000000000,
-				(long long)td % 1000000000);
-		printf("  time in MERGE: %ld.%09ld\n",
-				(long long)tm / 1000000000,
-				(long long)tm % 1000000000);
-	}
-
-	return 0;
-}
-
-int main(void)
-{
-	int nth, nbi, nbj, iter;
-	int counter = 0;
-	nbi = nbj = 16;
-	for (n = MINDIM; n <= MAXDIM; n *= 2) {
-		printf("matrix size: %dx%d = %d (%d bytes)\n",
-			n, n, n*n, n*n*(int)sizeof(mtype));
-		//for (nth = 1, nbi = nbj = 1; nth <= MAXTHREADS; ) {
-			//int niter = MAXDIM/n;
-			int niter = 5;
-			nth = nbi * nbj;
-
-			uint64_t td = 0;
-			tm = 0;
-			for (iter = 0; iter < niter; iter++) {
-				genmatrix(counter++);
-				uint64_t t = bench_time();
-				plu(nbi, nbj);
-				td += bench_time() - t;
-#if CHECK_CORRECTNESS
-				/* Ensure correctness. */
-				matmult();
-				printf("Check %d %d\n",nbi,nbj);
-				check(Orig, R);
-#endif
-			}
-			td /= niter;
-			tm /= niter;
-
-			printf("blksize %dx%d thr %4d itr %d: %lld.%09lld\n",
-				n/nbi, n/nbj, nth, niter,
-				(long long)td / 1000000000,
-				(long long)td % 1000000000);
-			printf("  time in MERGE: %ld.%09ld\n",
-					(long long)tm / 1000000000,
-					(long long)tm % 1000000000);
-
-			/*if (nbi == nbj)
-				nbi *= 2;
-			else
-				nbj *= 2;
-			nth *= 2;
-		}*/
 	}
 	return 0;
 }
