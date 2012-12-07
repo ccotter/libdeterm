@@ -1,4 +1,5 @@
 
+#include <unistd.h>
 #include <stdio.h>
 #include <assert.h>
 #include <determinism.h>
@@ -7,7 +8,7 @@
 #include <bench.h>
 
 #define MINDIM		16
-#define MAXDIM		1024
+#define MAXDIM		512
 #define MAXTHREADS	256
 
 /* Original author Bryan Ford <bryan.ford@yale.edu> for Determinator

@@ -1,4 +1,5 @@
 
+#include <time.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <determinism.h>
@@ -184,5 +185,13 @@ begin:
 		return EOF;
 	else
 		return EOF;
+}
+
+unsigned int sleep(unsigned int seconds)
+{
+	struct timespec t;
+	t.tv_sec = seconds;
+	t.tv_nsec = 0;
+	return syscall2(__NR_nanosleep, (long)&t, 0);
 }
 

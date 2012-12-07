@@ -10,6 +10,7 @@
 #define __NR_mmap 9
 #define __NR_munmap 11
 #define __NR_brk 12
+#define __NR_nanosleep 35
 #define __NR_fork 57
 #define __NR_exit 60
 #define __NR_gettimeofday 96
