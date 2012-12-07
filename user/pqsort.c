@@ -268,7 +268,7 @@ pqsort(void *arg)
 
 #define MAX_ARRAY_SIZE	100000000
 #define MAXTHREADS	64
-#define NITER		3
+#define NITER		10
 
 KEY_T randints[MAX_ARRAY_SIZE+1];
 
@@ -289,7 +289,7 @@ testpqsort(int array_size, int nthread)
 	assert(nthread <= MAXTHREADS);
 	int iter;
 
-	uint64_t tt = 0;
+	printf("array_size: %d:\n", array_size);
 	for(iter = 0; iter < NITER; ++iter) {
 		gen_randints(array_size, array_size + iter);
 		uint64_t ts = bench_time();
@@ -299,16 +299,14 @@ testpqsort(int array_size, int nthread)
 			.nth = nthread,
 			.cn = 1 };
 		pqsort(&arg);
-		tt += bench_time() - ts;
+		ts = bench_time() - ts;
+		printf("%lld.%09lld\n",
+				(long long)ts / 1000000000,
+				(long long)ts % 1000000000);
 		if (!is_sorted(randints, array_size)) {
 			printf("BAD");
 		}
 	}
-	tt /= NITER;
-
-	long long t1 = tt / 1000000000;
-	long long t2 = tt % 1000000000;
-	printf("array_size: %d\tavg. time: %lld.%09lld\n", array_size, t1, t2);
 }
 
 static void usage(char **argv)
